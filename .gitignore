@@ -1,5 +1,26 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+
+# Environnement
+.env
+.env*.local
+# Node
+node_modules/
+# Prisma
+prisma/generated/ # Le client généré
+prisma/migrations/*/*.sql # Les SQL de migration
+# Next.js build/cache
+.next/
+out/
+# OS specific
+.DS_Store
+*.pem
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
 # dependencies
 /node_modules
 /.pnp

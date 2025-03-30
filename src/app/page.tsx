@@ -1,103 +1,95 @@
+// src/app/page.tsx
 import Image from "next/image";
+// Importer des composants pour les animations si vous utilisez des librairies
+// import { Parallax } from 'some-parallax-library';
+// import ParticleComponent from '@/components/ParticleComponent';
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex flex-col items-center min-h-screen overflow-x-hidden">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Section Héros */}
+      <section
+        id="hero"
+        className="w-full h-screen flex flex-col justify-center items-center relative text-center px-4 md:px-8 bg-gradient-to-br from-blue-900/80 via-cyan-900/70 to-teal-900/60" // Exemple de dégradé
+        // Ajouter ici les styles/logiques pour le motif abstrait et l'effet parallaxe
+      >
+         {/* Placeholder pour l'animation d'entrée */}
+         <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 animate-fade-in-up"> {/* Utiliser une classe d'animation CSS ou JS */}
+           Orthanc Project
+         </h1>
+         <p className="text-lg md:text-xl text-cyan-200 mb-8 animate-fade-in-up animation-delay-200">
+           Révolutionner l'accès à l'imagerie médicale.
+         </p>
+
+         {/* Placeholder pour l'image 1 (radio thoracique) avec interaction */}
+         <div className="w-full max-w-4xl h-64 md:h-96 relative my-8 perspective-1000">
+            {/* Intégrer ici l'image 1 avec effets 3D/parallaxe (ex: avec React Three Fiber ou CSS 3D) */}
+           <Image
+             src="/images/image1_thorax.jpg" // Assurez-vous que le chemin est correct
+             alt="Radiographie Thoracique Interactive"
+             layout="fill"
+             objectFit="contain"
+             className="transition-transform duration-500 ease-out hover:scale-105" // Effet de base au survol
+           />
+           <div className="absolute inset-0 bg-black/10 pointer-events-none"></div> {/* Effet de superposition */}
+         </div>
+
+         {/* Placeholder pour l'appel à l'action */}
+         <button className="mt-8 px-8 py-3 bg-cyan-500 text-white font-semibold rounded-full shadow-lg hover:bg-cyan-400 transition-all duration-300 relative overflow-hidden group">
+           {/* Animation d'enveloppe lumineuse (ex: via pseudo-éléments CSS animés) */}
+           <span className="absolute inset-0 bg-white/20 animate-pulse-light group-hover:animate-none"></span>
+           <span className="relative z-10">Commencer l'Exploration</span>
+         </button>
+
+         {/* Placeholder pour l'animation de particules */}
+         {/* <ParticleComponent className="absolute inset-0 z-[-1]" /> */}
+      </section>
+
+      {/* Section Exploration Fonctionnalités */}
+      <section id="features" className="w-full py-20 px-4 md:px-8 bg-gray-100 dark:bg-gray-900 text-center">
+        <h2 className="text-3xl md:text-4xl font-semibold mb-12">Découvrez la Puissance</h2>
+        <div className="max-w-5xl mx-auto relative h-[400px] md:h-[500px]">
+          {/* Placeholder pour l'écran 3D simulé avec l'image 2 */}
+          <div className="absolute inset-0 flex justify-center items-center perspective-1200">
+             {/* Mettre ici la logique pour la rotation 3D au mouvement souris (JS/CSS) */}
+             <div className="w-[80%] h-[80%] bg-gray-800 rounded-lg shadow-2xl transform-style-3d transition-transform duration-200 ease-out">
+                {/* Intégrer l'image 2 ici, potentiellement dans un carousel */}
+               <Image
+                 src="/images/image2_brain_scans.jpg" // Chemin correct
+                 alt="Scans Cérébraux sur Écran 3D"
+                 layout="fill"
+                 objectFit="cover"
+                 className="rounded-lg"
+               />
+             </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      {/* Section Mobilité Médicale */}
+      <section id="mobility" className="w-full py-20 px-4 md:px-8 bg-white dark:bg-black">
+         <h2 className="text-3xl md:text-4xl font-semibold text-center mb-12">L'Imagerie à portée de Main</h2>
+         <div className="max-w-4xl mx-auto relative flex justify-center items-center">
+           {/* Placeholder pour la maquette de scène clinique avec tablette (Image 3) */}
+           {/* Utiliser une image de fond de scène clinique et superposer la tablette */}
+           <div className="relative w-[300px] h-[450px] md:w-[400px] md:h-[600px]">
+             {/* Maquette de tablette (peut être une div stylisée ou une image) */}
+             <div className="absolute inset-0 border-8 border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                <Image
+                  src="/images/image3_dental_tablet.jpg" // Chemin correct
+                  alt="Radiographie Dentaire sur Tablette"
+                  layout="fill"
+                  objectFit="cover"
+                />
+             </div>
+           </div>
+           {/* Ajouter des éléments de scène clinique interactifs autour */}
+         </div>
+      </section>
+
+      {/* Ajouter d'autres sections si nécessaire */}
+
     </div>
   );
 }

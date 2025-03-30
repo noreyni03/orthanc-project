@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Utilise la variable d'environnement définie dans .env
+  url      = env("DATABASE_URL")
+}
+
+// Modèle Utilisateur (Adapté pour NextAuth + Rôles)
+model User {
+  id            String    @id @default(uuid())
+  name          String?                     // Requis par NextAuth (peut être dérivé de l'email ou Google)
+  email         String    @unique             // Requis par NextAuth
+  emailVerified DateTime?                   // Requis par NextAuth
+  image         String?                     // Requis par NextAuth (URL de l'avatar)
+  password      String?                     // Mot de passe local, optionnel
+  provider      String    @default("local") // 'local' ou 'google' (utile pour votre logique)
+  providerId    String?   @unique           // ID unique du provider OAuth (utile pour lier les comptes)
+
+  enabled       Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // --- Champs requis par NextAuth Prisma Adapter ---
+  accounts      Account[]                   // Comptes OAuth liés
+  sessions      Session[]                   // Sessions NextAuth
+
+  // --- Votre relation personnalisée ---
+  roles         Role[]                      // Relation Many-to-Many avec Role
+
+  @@index([email])
+}
+
+// Modèle Rôle personnalisé
+model Role {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique // Ex: ADMIN, RADIOLOGIST, TECHNICIAN
+  users         User[]    // Relation Many-to-Many avec User
+}
+
+
+// --- Modèles requis par NextAuth Prisma Adapter ---
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  // Relation avec User
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId]) // Clé primaire composite
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  // Relation avec User
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token]) // Clé primaire composite
+}
