@@ -1,0 +1,55 @@
+**Description Actualisée du Projet : `orthanc-project`**
+
+**Introduction**
+
+`orthanc-project` est un Système de Gestion d'Imagerie Médicale (SGIM) web innovant et open-source, entièrement construit sur la plateforme **Next.js**. Il vise à fournir une solution moderne, performante, sécurisée et esthétiquement aboutie pour répondre aux défis complexes de la gestion des images DICOM dans les établissements de santé. En s'intégrant de manière transparente avec le serveur PACS **Orthanc**, le projet offre une interface utilisateur intuitive et des fonctionnalités robustes pour optimiser les flux de travail des professionnels de santé.
+
+**Contexte et Problématique**
+
+Le domaine de l'imagerie médicale est confronté à une volumétrie de données croissante, à des impératifs stricts de sécurité et de conformité (RGPD, etc.), à des difficultés d'interopérabilité entre systèmes (SIH/DPI), et à un besoin d'accessibilité accrue pour les cliniciens. `orthanc-project` aborde ces points en proposant une alternative flexible et centrée sur l'utilisateur aux solutions existantes, en tirant parti d'une stack technologique cohérente et moderne basée sur l'écosystème JavaScript/TypeScript.
+
+**Objectif Général**
+
+L'objectif est de fournir une **plateforme web fullstack unique et intégrée pour la gestion complète du cycle de vie des images médicales**, depuis l'acquisition et le stockage jusqu'à la recherche, la visualisation interactive et le partage sécurisé, améliorant ainsi l'efficacité diagnostique et la collaboration médicale.
+
+**Architecture Technique**
+
+`orthanc-project` adopte une architecture **FullStack Next.js** :
+
+*   **Framework :** **Next.js 14+** (utilisant React 18+) avec le **App Router**. Gère à la fois :
+    *   Le **Frontend :** Interface utilisateur réactive et moderne (rendue principalement côté client).
+    *   Le **Backend :** Logique métier, accès aux données et intégrations via les **API Routes** de Next.js.
+*   **Langage :** **TypeScript** sur l'ensemble de la stack pour la robustesse et la maintenabilité.
+*   **Base de Données :** **PostgreSQL** (via Docker) pour les données applicatives (utilisateurs, rôles, sessions, etc.).
+*   **ORM :** **Prisma** pour une interaction typée et sécurisée avec la base de données PostgreSQL.
+*   **Authentification :** **NextAuth.js (Auth.js v5)** configuré avec le **PrismaAdapter** (sessions en BDD) et le **GoogleProvider** (OAuth2).
+*   **Serveur PACS :** **Orthanc** (via Docker), utilisé comme moteur de stockage DICOM et fournisseur d'API REST / DICOMweb.
+*   **Visualisation DICOM :** **Cornerstone.js** intégré au frontend Next.js.
+*   **Stockage Objet (Dev) :** **MinIO** (via Docker) pour les besoins de développement (ex: stockage futur de rapports, exports).
+*   **Styling :** **Tailwind CSS** (v3 stable recommandée) pour une interface utilisateur moderne et personnalisable.
+*   **Animation (Optionnel) :** **Framer Motion** pour des animations fluides et complexes.
+*   **Environnement :** **Docker et Docker Compose** pour gérer les services externes (Postgres, Orthanc, MinIO) de manière isolée et reproductible.
+
+**Fonctionnalités Clés (MVP et Vision)**
+
+La plateforme `orthanc-project` vise à inclure :
+
+*   **Page d'Accueil Révolutionnaire :** Une vitrine publique moderne et animée présentant le projet.
+*   **Authentification Sécurisée :** Connexion via Google OAuth2 et potentiellement locale (future), gérée par NextAuth.js.
+*   **Gestion des Utilisateurs et Rôles :** Interface d'administration (protégée) pour gérer les utilisateurs et attribuer des rôles (Admin, Radiologue, etc.) stockés via Prisma.
+*   **Recherche d'Images :** Interface pour rechercher des études/séries dans Orthanc via des API Routes Next.js interrogeant l'API Orthanc.
+*   **Visualiseur DICOM Intégré :** Affichage interactif des images DICOM avec Cornerstone.js (zoom, pan, fenêtrage) dans le navigateur.
+*   **Importation Manuelle :** Interface utilisateur et API Route pour permettre l'upload sécurisé de fichiers DICOM vers Orthanc.
+*   **(Futures) Fonctionnalités Avancées :** Outils de mesure/annotation, partage sécurisé, collaboration, intégration SIH/DPI (HL7 FHIR/DICOMweb), audit log détaillé, etc.
+
+**Valeur Ajoutée**
+
+*   **Stack Unifiée :** Utilisation de JavaScript/TypeScript sur l'ensemble du projet (frontend, backend API Routes) simplifiant le développement et la maintenance.
+*   **Expérience Développeur Moderne :** Bénéficie de l'écosystème riche de Next.js, React, Prisma et Tailwind CSS.
+*   **Performance Web :** Exploite les optimisations de Next.js pour une interface rapide et réactive.
+*   **Sécurité Intégrée :** Profite des mécanismes de NextAuth.js et des bonnes pratiques de développement web sécurisé.
+*   **Flexibilité Open Source :** Combine la flexibilité d'Orthanc avec la puissance de l'écosystème Node.js/React.
+
+`orthanc-project`, dans cette nouvelle itération, représente une approche résolument moderne et intégrée pour construire un SGIM performant et convivial, prêt à évoluer pour répondre aux exigences complexes du secteur de la santé.
+
+---
