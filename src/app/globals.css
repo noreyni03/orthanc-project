@@ -1,21 +1,97 @@
+/* src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Default to dark mode values matching the theme */
+  --background: #0a0a0a; /* Equivalent to slate-950 or near black */
+  --foreground: #ededed; /* Light gray for text */
+
+  /* You could define other theme colors here if needed */
+  /* --primary: #06b6d4; */ /* Example: cyan-500 */
+  /* --secondary: #3b82f6; */ /* Example: blue-500 */
 }
 
-@media (prefers-color-scheme: dark) {
+/* Optional: Explicit Light Mode override if needed, */
+/* but the design seems primarily dark */
+/* @media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #171717;
   }
-}
+} */
 
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Consider keeping GeistSans from layout.tsx for consistency,
+     but Arial/Helvetica is also fine as a fallback */
   font-family: Arial, Helvetica, sans-serif;
+  /* Improve text rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Define animations within the utilities layer */
+@layer utilities {
+  /* Shake animation for errors */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  /* Fade-in animation */
+   @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+   .animate-fade-in {
+     animation: fadeIn 0.5s ease-out forwards;
+   }
+
+   /* Medical Glow animation for logo */
+   @keyframes pulse-medical-glow {
+     0%, 100% { filter: drop-shadow(0 0 3px theme('colors.cyan.400')); opacity: 1; }
+     50% { filter: drop-shadow(0 0 8px theme('colors.cyan.300')); opacity: 0.8; }
+   }
+   /* Apply animation on hover of the parent group */
+   .group-hover\:animate-pulse-medical-glow:hover svg {
+     animation: pulse-medical-glow 1.5s ease-in-out infinite;
+   }
+   /* Allow applying directly too */
+   .animate-pulse-medical-glow {
+     animation: pulse-medical-glow 1.5s ease-in-out infinite;
+   }
+
+   /* Heartbeat animation for loading indicator */
+   @keyframes pulse-heartbeat {
+     0% { transform: scale(1); opacity: 0.7; }
+     50% { transform: scale(1.1); opacity: 1; }
+     100% { transform: scale(1); opacity: 0.7; }
+   }
+   .animate-pulse-heartbeat {
+     animation: pulse-heartbeat 1s ease-in-out infinite;
+   }
+}
+
+/* Additional global styles can go here */
+/* Example: Scrollbar styling (optional) */
+/* ::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: theme('colors.slate.800');
+}
+::-webkit-scrollbar-thumb {
+  background-color: theme('colors.cyan.700');
+  border-radius: 4px;
+  border: 2px solid theme('colors.slate.800');
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: theme('colors.cyan.600');
+} */
