@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@/app/api/auth/[...nextauth]/route'; // Import configured auth
 
+// No input validation needed for GET /api/admin/users
+
 const prisma = new PrismaClient();
 
 export async function GET() {

@@ -2,30 +2,43 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { z } from 'zod'; // Importer Zod
 
 const prisma = new PrismaClient();
-const SALT_ROUNDS = 10; // Standard salt rounds for bcrypt
+const SALT_ROUNDS = 10;
+
+// Définir le schéma de validation Zod pour l'inscription
+const registerSchema = z.object({
+  email: z.string().email({ message: "Format d'email invalide" }),
+  password: z.string().min(6, { message: "Le mot de passe doit faire au moins 6 caractères" }),
+  // Le nom est une chaîne facultative, transformée en null si vide ou absente
+  name: z.string().optional().nullable().transform(val => (val === "" ? null : val)),
+});
+
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Extraire les données du corps de la requête
+    // 1. Extraire le corps de la requête
     const body = await req.json();
-    const { email, password, name } = body;
 
-    // 2. Validation simple des entrées
-    if (!email || typeof email !== 'string') {
-      return NextResponse.json({ message: 'Email invalide ou manquant.' }, { status: 400 });
-    }
-    if (!password || typeof password !== 'string' || password.length < 6) {
-      // Vous pouvez renforcer cette règle (longueur, complexité)
-      return NextResponse.json({ message: 'Mot de passe invalide ou trop court (minimum 6 caractères).' }, { status: 400 });
-    }
-    // Le nom est facultatif ici, mais vous pouvez le rendre obligatoire si nécessaire
-    if (name && typeof name !== 'string') {
-        return NextResponse.json({ message: 'Nom invalide.' }, { status: 400 });
+    // 2. Valider le corps de la requête avec Zod
+    const validationResult = registerSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      // Si la validation échoue, retourner une erreur 400 avec les détails
+      return NextResponse.json(
+        {
+          message: 'Données invalides fournies.',
+          errors: validationResult.error.flatten().fieldErrors, // Erreurs détaillées par champ
+        },
+        { status: 400 }
+      );
     }
 
-    // 3. Vérifier si l'utilisateur existe déjà
+    // Utiliser les données validées
+    const { email, password, name } = validationResult.data;
+
+    // 3. Vérifier si l'utilisateur existe déjà (après validation)
     const existingUser = await prisma.user.findUnique({
       where: { email: email },
     });
@@ -40,17 +53,15 @@ export async function POST(req: NextRequest) {
     // 5. Créer le nouvel utilisateur dans la base de données
     const newUser = await prisma.user.create({
       data: {
-        email: email,
+        email: email, // Utiliser l'email validé
         password: hashedPassword,
-        name: name || null, // Stocker null si le nom n'est pas fourni
-        provider: 'local', // Marquer comme compte local
-        enabled: true, // Activer le compte par défaut
+        name: name, // Utiliser le nom validé et transformé
+        provider: 'local',
+        enabled: true,
         // emailVerified: null, // L'email n'est pas vérifié initialement
         // --- Attribution de rôle par défaut (Optionnel) ---
-        // Si vous voulez assigner un rôle par défaut (ex: 'PHYSICIAN') à chaque nouvel inscrit:
-        // Assurez-vous que le rôle existe (créé par le seed)
         // roles: {
-        //   connect: { name: 'PHYSICIAN' } // Ou l'ID si vous préférez
+        //   connect: { name: 'PHYSICIAN' }
         // }
         // ---------------------------------------------------
       },
@@ -72,20 +83,13 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("Registration Error:", error);
-    // Gérer les erreurs potentielles (ex: problème de connexion DB, erreur inattendue)
-    // Éviter de divulguer des détails sensibles en production
     let errorMessage = "Une erreur est survenue lors de l'inscription.";
     if (error instanceof Error) {
-       // Vous pourriez vouloir logguer error.message côté serveur
-       // mais ne pas nécessairement l'envoyer au client
        console.error("Detailed Error:", error.message);
     }
-
     // Erreur générique pour le client
     return NextResponse.json({ message: errorMessage }, { status: 500 });
   } finally {
-     // S'assurer de déconnecter Prisma dans les fonctions serverless
-     // Bien que Next.js puisse gérer les connexions, c'est une bonne pratique
      await prisma.$disconnect();
   }
 }

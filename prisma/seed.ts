@@ -6,12 +6,12 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-// Définir les rôles de base
+// Définir les rôles de base (Modification: PHYSICIAN -> MEDECIN)
 const rolesToCreate: Prisma.RoleCreateInput[] = [
   { name: 'ADMIN' },
   { name: 'RADIOLOGIST' },
   { name: 'TECHNICIAN' },
-  { name: 'PHYSICIAN' }, // ou Medecin
+  { name: 'MEDECIN' }, // Remplacé PHYSICIAN par MEDECIN
   { name: 'SECRETARY' }, // ou SecMed
   // Ajoutez d'autres rôles si nécessaire
 ];
@@ -27,13 +27,13 @@ async function main() {
   for (const roleData of rolesToCreate) {
     const role = await prisma.role.upsert({
       where: { name: roleData.name },
-      update: {},
-      create: roleData,
+      update: {}, // Ne rien mettre à jour si le rôle existe déjà par nom
+      create: roleData, // Créer le rôle s'il n'existe pas
     });
     console.log(`Created or found role: ${role.name}`);
   }
 
-  // Récupérer l'ID du rôle ADMIN
+  // Récupérer l'ID du rôle ADMIN (inchangé)
   const adminRole = await prisma.role.findUnique({
     where: { name: 'ADMIN' },
   });
@@ -43,10 +43,10 @@ async function main() {
     return;
   }
 
-  // Hasher le mot de passe admin
+  // Hasher le mot de passe admin (inchangé)
   const hashedPassword = await bcrypt.hash(adminPassword, 10); // 10 = salt rounds
 
-  // Créer l'utilisateur admin (ignorer s'il existe déjà par email)
+  // Créer l'utilisateur admin (ignorer s'il existe déjà par email) (inchangé)
   const adminUser = await prisma.user.upsert({
     where: { email: adminEmail },
     update: {}, // Ne rien mettre à jour s'il existe déjà
