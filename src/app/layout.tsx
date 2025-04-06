@@ -1,14 +1,16 @@
-// src/app/layout.tsx
+// --- START OF FILE src/app/layout.tsx ---
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans"; // Utiliser GeistSans directement
 import { GeistMono } from "geist/font/mono"; // Utiliser GeistMono directement
 import "./globals.css";
-import SessionProviderWrapper from "@/components/SessionProviderWrapper"; // Wrapper côté client
-import Header from "@/components/Header"; // Importer le Header
+import SessionProviderWrapper from "@/components/SessionProviderWrapper"; // Wrapper côté client requis pour useSession
+
+// Supprimer l'import du Header redondant
+// import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "Orthanc Project - Gestion d'Imagerie Médicale", // Titre plus pertinent
-  description: "Une plateforme moderne pour visualiser et gérer les images DICOM.",
+  title: "Orthanc - Plateforme d'Imagerie Médicale Collaborative", // Titre affiné
+  description: "Collaborez, analysez et partagez des données d'imagerie médicale de manière sécurisée.", // Description affinée
 };
 
 export default function RootLayout({
@@ -19,18 +21,27 @@ export default function RootLayout({
   return (
     <html lang="fr"> {/* Langue française */}
       <body
-        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased bg-[var(--background)] text-[var(--foreground)] overflow-x-hidden`} // Ajout overflow-x-hidden
+        // Application des polices Geist et styles de base via variables CSS globales
+        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased bg-[var(--background)] text-[var(--foreground)] overflow-x-hidden`}
       >
-        {/* SessionProvider doit être dans un composant client */}
+        {/* SessionProviderWrapper est essentiel pour que useSession fonctionne dans les composants Client (comme Navbar) */}
         <SessionProviderWrapper>
-          {/* Design à grille fluide - structure de base */}
+          {/* Structure principale pour s'assurer que le contenu remplit la page */}
           <div className="flex flex-col min-h-screen">
-             <Header /> {/* Barre de navigation */}
+             {/*
+                L'ancien composant <Header /> est supprimé ici.
+                La barre de navigation est maintenant gérée par le composant <Navbar />
+                qui est inclus directement dans le composant de la page (par exemple, page.tsx).
+             */}
+             {/* <Header /> */} {/* LIGNE SUPPRIMÉE / COMMENTÉE */}
+
+             {/* Le contenu principal de la page (y compris la Navbar de page.tsx) sera injecté ici */}
              <main className="flex-grow">
-               {/* Intégrer ici la logique pour les transitions de page si nécessaire */}
                {children}
              </main>
-             {/* Ajouter un Footer si nécessaire */}
+
+             {/* Le Footer est également géré dans page.tsx pour cette structure,
+                 mais pourrait être placé ici s'il devait être global et en dehors de <main> */}
              {/* <Footer /> */}
           </div>
         </SessionProviderWrapper>
@@ -38,3 +49,4 @@ export default function RootLayout({
     </html>
   );
 }
+// --- END OF FILE src/app/layout.tsx ---
