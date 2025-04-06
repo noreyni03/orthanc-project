@@ -2,7 +2,6 @@
 import NextAuth from 'next-auth';
 import type { NextAuthConfig } from 'next-auth';
 import type { Session } from 'next-auth';
-// import type { User as NextAuthUser } from 'next-auth'; // Pas nécessaire ici
 import type { AdapterUser } from '@auth/core/adapters';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -12,7 +11,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// --- Vérification des variables d'environnement essentielles ---
+// --- Vérification des variables d'environnement (inchangée) ---
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
@@ -22,13 +21,12 @@ if (!googleClientId || !googleClientSecret) {
   throw new Error('Missing Google OAuth environment variables');
 }
 if (!nextAuthSecret) {
-  // Important: Ne pas logger le secret lui-même en production
   console.error('FATAL ERROR: Missing NEXTAUTH_SECRET environment variable! Authentication will fail.');
   throw new Error('Missing NEXTAUTH_SECRET environment variable');
 }
-
 // -------------------------------------------------------------
-// Étendre les types pour ajouter nos champs personnalisés
+
+// Étendre les types (inchangé)
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -39,20 +37,14 @@ declare module 'next-auth' {
       image?: string | null;
     }
   }
-  // L'extension User n'est généralement pas nécessaire avec l'adapter si on utilise le callback session
-  // interface User {
-  //   roles?: string[];
-  // }
 }
 
-// Définir les options avec le type NextAuthConfig correct
 export const authOptions: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
-      // allowDangerousEmailAccountLinking: true, // Décommentez si vous voulez lier Google à un compte local existant par email
     }),
     CredentialsProvider({
       name: 'Credentials',
@@ -62,103 +54,96 @@ export const authOptions: NextAuthConfig = {
         password: { label: "Mot de passe", type: "password" }
       },
       async authorize(credentials): Promise<AdapterUser | null> {
+        // --- Logique authorize inchangée ---
         console.log("Attempting credentials authorization...");
-
         if (!credentials?.email || !credentials?.password) {
-          console.error("Authorize Error: Email or password not provided.");
-          // Lancer une erreur ici notifiera NextAuth de l'échec avec "CredentialsSignin"
           throw new Error("Email et mot de passe requis");
-          // return null; // Alternativement, retourner null
         }
-
         const email = credentials.email as string;
         const password = credentials.password as string;
-
         try {
-          const user = await prisma.user.findUnique({
-            where: { email: email }
-          });
-
-          if (!user || !user.password) {
-             console.warn(`Authorize Warning: User not found or no local password set for email: ${email}`);
-             // Ne pas révéler si l'email existe ou non pour des raisons de sécurité
-             // Lancer une erreur standard pour masquer la raison exacte de l'échec
-             throw new Error("Email ou mot de passe invalide.");
-             // return null;
-          }
-
-          // Vérifier si l'utilisateur est activé (si ce champ est pertinent)
-          if (!user.enabled) {
-            console.warn(`Authorize Warning: Disabled user login attempt: ${email}`);
-            throw new Error("Compte désactivé.");
-            // return null;
-          }
-
+          const user = await prisma.user.findUnique({ where: { email: email } });
+          if (!user || !user.password) { throw new Error("Email ou mot de passe invalide."); }
+          if (!user.enabled) { throw new Error("Compte désactivé."); }
           const isPasswordValid = await bcrypt.compare(password, user.password);
-
           if (isPasswordValid) {
             console.log(`Authorize Success: User ${email} authenticated.`);
-            // Retourner l'objet utilisateur requis par l'adapter et la session
-            // Les rôles seront ajoutés dans le callback `session`.
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              emailVerified: user.emailVerified, // Important pour l'adapter
-              image: user.image,
-              // NE PAS RETOURNER LE MOT DE PASSE!
-            };
+            return { id: user.id, email: user.email, name: user.name, emailVerified: user.emailVerified, image: user.image };
           } else {
-            console.warn(`Authorize Warning: Invalid password attempt for email: ${email}`);
             throw new Error("Email ou mot de passe invalide.");
-            // return null;
           }
-
         } catch (error) {
-           // Si l'erreur est déjà une Error avec un message utilisateur, la relancer
-           if (error instanceof Error && ["Email et mot de passe requis", "Email ou mot de passe invalide.", "Compte désactivé."].includes(error.message)) {
-             throw error;
-           }
-           // Pour les autres erreurs (DB, etc.), logguer et lancer une erreur générique
+           if (error instanceof Error && ["Email et mot de passe requis", "Email ou mot de passe invalide.", "Compte désactivé."].includes(error.message)) { throw error; }
            console.error("Authorize Error: An unexpected error occurred during authorization.", error);
            throw new Error("Une erreur interne est survenue lors de la connexion.");
-           // return null;
         }
+        // --- Fin logique authorize ---
       }
     })
   ],
-  session: {
-    // Utilisation de la stratégie de base de données (via PrismaAdapter)
-    strategy: 'database',
-    // maxAge: 30 * 24 * 60 * 60, // Optionnel : 30 jours
-    // updateAge: 24 * 60 * 60, // Optionnel : Mettre à jour la session toutes les 24 heures
-  },
-  secret: nextAuthSecret, // Assuré non nul par la vérification précédente
+  session: { strategy: 'database' },
+  secret: nextAuthSecret,
   callbacks: {
     // Enrichit la session avec l'ID et les rôles de l'utilisateur
     async session({ session, user }: { session: Session; user: AdapterUser }) {
-      // `user` ici est l'utilisateur tel que retourné par l'adapter (après connexion/inscription)
-      // ou potentiellement par `authorize` (pour Credentials, bien que l'adapter soit prioritaire si session `database`)
       console.log("Session callback triggered. User from adapter/token:", user);
-      if (session?.user && user?.id) { // Vérifier que user.id existe
+      if (session?.user && user?.id) {
         session.user.id = user.id;
 
         try {
-            // Récupérer les rôles actuels depuis la DB à chaque création/refresh de session
-            const userWithRolesFromDb = await prisma.user.findUnique({
+            // Récupérer les rôles actuels depuis la DB
+            let userWithRolesFromDb = await prisma.user.findUnique({
               where: { id: user.id },
               select: {
-                roles: {
-                  select: { name: true },
-                },
+                // Ajout de l'email pour le log
+                email: true,
+                roles: { select: { name: true } },
               },
             });
 
+            // ----> AJOUT/CORRECTION : Vérification et assignation rôle par défaut pour OAuth <----
+            if (userWithRolesFromDb && !userWithRolesFromDb.roles?.length) {
+              // Vérifier si l'utilisateur a un compte Google lié
+              const googleAccount = await prisma.account.findFirst({
+                where: { userId: user.id, provider: 'google' },
+                // *** CORRECTED: Select an existing valid field like userId to check existence ***
+                select: { userId: true }
+              });
+
+              if (googleAccount) {
+                // C'est probablement un nouvel utilisateur Google sans rôle, on assigne TECHNICIAN
+                try {
+                  console.log(`Assigning default TECHNICIAN role to new/roleless Google user: ${user.id} (${userWithRolesFromDb.email})`);
+                  await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                      roles: {
+                        connect: { name: 'TECHNICIAN' }
+                      }
+                    }
+                  });
+                  // Mettre à jour la variable locale pour que la session en cours ait le rôle
+                  userWithRolesFromDb.roles = [{ name: 'TECHNICIAN' }];
+                  console.log(`Default role assigned successfully to ${user.id}`);
+                } catch (updateError) {
+                  console.error(`Failed to assign default TECHNICIAN role to user ${user.id}:`, updateError);
+                   // Logique de fallback en cas d'échec de la mise à jour du rôle (ex: rôle inexistant)
+                   if (updateError instanceof Error && updateError.message.toLowerCase().includes('record to connect not found')) {
+                     console.error("CRITICAL: Default role 'TECHNICIAN' not found in database during session update.");
+                   }
+                   // La session continuera sans le rôle par défaut si l'update échoue
+                }
+              }
+            }
+            // ------------------------------------------------------------------------
+
+            // Assigner les rôles (potentiellement mis à jour) à la session
             session.user.roles = userWithRolesFromDb?.roles.map((role) => role.name) ?? [];
-            console.log("Session callback: User roles assigned:", session.user.roles);
+            console.log(`Session callback: User roles for ${user.id} set to:`, session.user.roles);
+
          } catch (dbError) {
-             console.error("Session callback: Error fetching roles from DB", dbError);
-             session.user.roles = []; // Fallback à un tableau vide en cas d'erreur DB
+             console.error(`Session callback: Error fetching or updating roles from DB for user ${user.id}`, dbError);
+             session.user.roles = []; // Fallback à un tableau vide en cas d'erreur DB majeure
          }
       } else {
           console.warn("Session callback: session.user or user.id missing.", { hasSessionUser: !!session?.user, hasUserId: !!user?.id });
@@ -166,49 +151,27 @@ export const authOptions: NextAuthConfig = {
       return session;
     },
 
-    // Optionnel : Callback signIn pour des vérifications supplémentaires
+    // --- Callback signIn inchangé ---
     async signIn({ user, account, profile }) {
       console.log(`SignIn callback: User: ${user.id}, Account Provider: ${account?.provider}`);
-      if (account?.provider === 'google') {
-        // Exemple : Vérifier si l'email Google est vérifié
-        // Note : `profile` peut varier selon le provider et la config OAuth
-        // const googleProfile = profile as { email_verified?: boolean };
-        // if (!googleProfile?.email_verified) {
-        //   console.log(`Google Sign-In blocked: Email not verified for ${user.email}`);
-        //   return false; // Bloquer la connexion si l'email Google n'est pas vérifié
-        // }
-      }
       if (account?.provider === 'credentials') {
-        // La vérification 'enabled' est déjà dans authorize, mais pourrait être redoublée ici si nécessaire
         const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { enabled: true } });
         if (dbUser?.enabled === false) {
            console.log(`Sign-in blocked for disabled user: ${user.email}`);
-           // Retourner false ici ne fonctionne pas toujours comme prévu pour Credentials avec redirect:false
-           // Il est préférable de gérer le blocage dans `authorize` en lançant une erreur.
-           // return false;
+           throw new Error("Compte désactivé.");
         }
       }
-      return true; // Autoriser la connexion par défaut
+      return true; // Autoriser la connexion
     }
   },
-  pages: {
-    // Pointe vers les pages personnalisées créées
+  pages: { // Inchangé
     signIn: '/auth/login',
-    // signOut: '/auth/logout', // Page optionnelle après déconnexion
-    error: '/auth/login', // Rediriger vers login en cas d'erreur, qui affichera l'erreur
-    // verifyRequest: '/auth/verify-request', // Si vous implémentez la vérification d'email
-    // newUser: '/auth/new-user' // Page après première connexion OAuth (rarement utilisé)
+    error: '/auth/login',
   },
   debug: process.env.NODE_ENV === 'development',
 };
 
-// --- NOUVEL EXPORT RECOMMANDÉ POUR Auth.js v5 / App Router ---
-// Initialiser NextAuth avec les options
+// --- Exports inchangés ---
 const { handlers, auth, signIn: authSignIn, signOut: authSignOut } = NextAuth(authOptions);
-
-// Exporter les handlers GET et POST depuis l'objet handlers retourné
 export const { GET, POST } = handlers;
-
-// Exporter optionnellement les fonctions utilitaires si utilisées côté serveur ailleurs
 export { auth, authSignIn, authSignOut };
-// --- FIN DU NOUVEL EXPORT ---

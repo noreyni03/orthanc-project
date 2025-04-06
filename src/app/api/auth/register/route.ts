@@ -3,7 +3,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { createErrorResponse } from '@/lib/apiUtils'; // Importer l'utilitaire
+import { createErrorResponse } from '@/lib/apiUtils';
 
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
@@ -25,7 +25,6 @@ export async function POST(req: NextRequest) {
     const validationResult = registerSchema.safeParse(body);
 
     if (!validationResult.success) {
-      // Utiliser createErrorResponse pour l'erreur de validation
       return createErrorResponse(
         "Erreur de validation des données d'inscription.",
         400,
@@ -42,14 +41,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingUser) {
-      // Utiliser createErrorResponse pour l'email existant
       return createErrorResponse("Un compte avec cet email existe déjà.", 409);
     }
 
     // 4. Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // 5. Créer le nouvel utilisateur
+    // 5. Créer le nouvel utilisateur dans la base de données
     const newUser = await prisma.user.create({
       data: {
         email: email,
@@ -57,28 +55,36 @@ export async function POST(req: NextRequest) {
         name: name,
         provider: 'local',
         enabled: true,
+        // ----> AJOUT : Assignation du rôle par défaut <----
+        roles: {
+          connect: { name: 'TECHNICIAN' } // Connecter au rôle TECHNICIAN
+        }
+        // -------------------------------------------------
       },
-      select: {
+      select: { // Sélectionner les champs à retourner
         id: true,
         email: true,
         name: true,
         createdAt: true,
         enabled: true,
         provider: true,
+        // Inclure les rôles pour confirmation si nécessaire (optionnel)
+        // roles: { select: { name: true } }
       }
     });
 
-    console.log(`New local user registered: ${newUser.email} (ID: ${newUser.id})`);
+    console.log(`New local user registered: ${newUser.email} (ID: ${newUser.id}) with default role TECHNICIAN`);
 
-    // 6. Retourner une réponse de succès (pas besoin de createSuccessResponse pour l'instant)
-    // On garde la structure de réponse existante pour le succès.
+    // 6. Retourner une réponse de succès
     return NextResponse.json(newUser, { status: 201 });
 
   } catch (error) {
-    // Logguer l'erreur complète côté serveur pour le débogage
     console.error("Registration Error:", error);
-
-    // Retourner une erreur générique 500 au client via createErrorResponse
+    // Gestion spécifique si la connexion au rôle échoue (ex: rôle inexistant)
+    if (error instanceof Error && error.message.toLowerCase().includes('record to connect not found')) {
+        console.error("CRITICAL: Default role 'TECHNICIAN' not found in database during registration.");
+        return createErrorResponse("Erreur interne de configuration lors de l'inscription.", 500);
+    }
     return createErrorResponse("Une erreur interne est survenue lors de l'inscription.", 500);
   } finally {
      await prisma.$disconnect();
