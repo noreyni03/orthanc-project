@@ -2,16 +2,16 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { z } from 'zod'; // Importer Zod
+import { z } from 'zod';
+import { createErrorResponse } from '@/lib/apiUtils'; // Importer l'utilitaire
 
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
 
-// Définir le schéma de validation Zod pour l'inscription
+// Schéma de validation Zod (inchangé)
 const registerSchema = z.object({
   email: z.string().email({ message: "Format d'email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit faire au moins 6 caractères" }),
-  // Le nom est une chaîne facultative, transformée en null si vide ou absente
   name: z.string().optional().nullable().transform(val => (val === "" ? null : val)),
 });
 
@@ -25,47 +25,39 @@ export async function POST(req: NextRequest) {
     const validationResult = registerSchema.safeParse(body);
 
     if (!validationResult.success) {
-      // Si la validation échoue, retourner une erreur 400 avec les détails
-      return NextResponse.json(
-        {
-          message: 'Données invalides fournies.',
-          errors: validationResult.error.flatten().fieldErrors, // Erreurs détaillées par champ
-        },
-        { status: 400 }
+      // Utiliser createErrorResponse pour l'erreur de validation
+      return createErrorResponse(
+        "Erreur de validation des données d'inscription.",
+        400,
+        validationResult.error.flatten().fieldErrors
       );
     }
 
     // Utiliser les données validées
     const { email, password, name } = validationResult.data;
 
-    // 3. Vérifier si l'utilisateur existe déjà (après validation)
+    // 3. Vérifier si l'utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({
       where: { email: email },
     });
 
     if (existingUser) {
-      return NextResponse.json({ message: 'Un compte avec cet email existe déjà.' }, { status: 409 }); // 409 Conflict
+      // Utiliser createErrorResponse pour l'email existant
+      return createErrorResponse("Un compte avec cet email existe déjà.", 409);
     }
 
     // 4. Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // 5. Créer le nouvel utilisateur dans la base de données
+    // 5. Créer le nouvel utilisateur
     const newUser = await prisma.user.create({
       data: {
-        email: email, // Utiliser l'email validé
+        email: email,
         password: hashedPassword,
-        name: name, // Utiliser le nom validé et transformé
+        name: name,
         provider: 'local',
         enabled: true,
-        // emailVerified: null, // L'email n'est pas vérifié initialement
-        // --- Attribution de rôle par défaut (Optionnel) ---
-        // roles: {
-        //   connect: { name: 'PHYSICIAN' }
-        // }
-        // ---------------------------------------------------
       },
-      // Sélectionner les champs à retourner (NE PAS RETOURNER LE MOT DE PASSE)
       select: {
         id: true,
         email: true,
@@ -78,17 +70,16 @@ export async function POST(req: NextRequest) {
 
     console.log(`New local user registered: ${newUser.email} (ID: ${newUser.id})`);
 
-    // 6. Retourner une réponse de succès
-    return NextResponse.json(newUser, { status: 201 }); // 201 Created
+    // 6. Retourner une réponse de succès (pas besoin de createSuccessResponse pour l'instant)
+    // On garde la structure de réponse existante pour le succès.
+    return NextResponse.json(newUser, { status: 201 });
 
   } catch (error) {
+    // Logguer l'erreur complète côté serveur pour le débogage
     console.error("Registration Error:", error);
-    let errorMessage = "Une erreur est survenue lors de l'inscription.";
-    if (error instanceof Error) {
-       console.error("Detailed Error:", error.message);
-    }
-    // Erreur générique pour le client
-    return NextResponse.json({ message: errorMessage }, { status: 500 });
+
+    // Retourner une erreur générique 500 au client via createErrorResponse
+    return createErrorResponse("Une erreur interne est survenue lors de l'inscription.", 500);
   } finally {
      await prisma.$disconnect();
   }

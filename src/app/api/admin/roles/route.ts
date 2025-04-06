@@ -1,28 +1,33 @@
 // src/app/api/admin/roles/route.ts
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route'; // Import configured auth
+import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { createErrorResponse } from '@/lib/apiUtils'; // Importer l'utilitaire
 
 // No input validation needed for GET /api/admin/roles
 
 const prisma = new PrismaClient();
 
 export async function GET() {
-  const session = await auth(); // Check session using the exported auth
+  const session = await auth();
 
   // Protect route: Only Admins
   if (!session?.user?.roles?.includes('ADMIN')) {
-    return NextResponse.json({ message: 'Accès refusé' }, { status: 403 });
+    // Utiliser createErrorResponse pour l'accès refusé
+    return createErrorResponse("Accès refusé. Seuls les administrateurs peuvent accéder à cette ressource.", 403);
   }
 
   try {
     const roles = await prisma.role.findMany({
-      orderBy: { name: 'asc' }, // Optional: order roles alphabetically
+      orderBy: { name: 'asc' },
     });
+    // Réponse de succès standard
     return NextResponse.json(roles);
   } catch (error) {
+    // Logguer l'erreur serveur
     console.error("Erreur lors de la récupération des rôles:", error);
-    return NextResponse.json({ message: "Erreur serveur lors de la récupération des rôles." }, { status: 500 });
+    // Utiliser createErrorResponse pour l'erreur serveur
+    return createErrorResponse("Erreur serveur lors de la récupération des rôles.", 500);
   } finally {
     await prisma.$disconnect();
   }

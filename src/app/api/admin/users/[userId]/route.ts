@@ -1,51 +1,49 @@
 // src/app/api/admin/users/[userId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route'; // Import configured auth
-import { z } from 'zod'; // Importer Zod
+// Import spécifique pour l'erreur Prisma
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { z } from 'zod';
+import { createErrorResponse } from '@/lib/apiUtils'; // Importer l'utilitaire
 
 const prisma = new PrismaClient();
 
-// Schéma de validation pour les paramètres de la route
+// Schéma pour les paramètres (inchangé)
 const paramsSchema = z.object({
   userId: z.string().uuid({ message: "ID utilisateur invalide (doit être un UUID)" }),
 });
 
-// Schéma de validation pour le corps de la requête PUT
+// Schéma pour le body (inchangé)
 const updateRolesSchema = z.object({
-  // roleIds doit être un tableau de nombres (peut être vide)
   roleIds: z.array(z.number().int(), { message: "roleIds doit être un tableau de nombres entiers." }),
 });
 
 
-// Handler for PUT requests to update roles
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { userId: string } } // params type comes from Next.js
+  { params }: { params: { userId: string } }
 ) {
-  // 1. Valider les paramètres de l'URL (userId)
+  // 1. Valider les paramètres de l'URL
   const paramsValidation = paramsSchema.safeParse(params);
   if (!paramsValidation.success) {
-    return NextResponse.json(
-      {
-        message: 'Paramètres d\'URL invalides.',
-        errors: paramsValidation.error.flatten().fieldErrors,
-      },
-      { status: 400 }
+    return createErrorResponse(
+      "Paramètres d'URL invalides.",
+      400,
+      paramsValidation.error.flatten().fieldErrors
     );
   }
-  // Utiliser l'ID validé
   const userId = paramsValidation.data.userId;
 
   // 2. Vérifier la session et les permissions
-  const session = await auth(); // Check session
+  const session = await auth();
   if (!session?.user?.roles?.includes('ADMIN')) {
-    return NextResponse.json({ message: 'Accès refusé' }, { status: 403 });
+    return createErrorResponse("Accès refusé. Seuls les administrateurs peuvent modifier les rôles.", 403);
   }
 
-  // Prevent admin from modifying their own roles via this endpoint
+  // Prevent admin from modifying their own roles
   if (userId === session.user.id) {
-      return NextResponse.json({ message: 'Impossible de modifier vos propres rôles ici' }, { status: 403 });
+      return createErrorResponse("Impossible de modifier vos propres rôles via cette interface.", 403);
   }
 
   try {
@@ -54,22 +52,23 @@ export async function PUT(
     const bodyValidation = updateRolesSchema.safeParse(body);
 
     if (!bodyValidation.success) {
-      return NextResponse.json(
-        {
-          message: 'Données du corps de la requête invalides.',
-          errors: bodyValidation.error.flatten().fieldErrors,
-        },
-        { status: 400 }
+      return createErrorResponse(
+        "Données du corps de la requête invalides.",
+        400,
+        bodyValidation.error.flatten().fieldErrors
       );
     }
-
-    // Utiliser les données validées
     const { roleIds } = bodyValidation.data;
 
     // 4. Vérifier si l'utilisateur existe (avant la mise à jour)
-    const userExists = await prisma.user.findUnique({ where: { id: userId } });
+    //    Ce findUnique n'est pas strictement nécessaire car l'update échouerait avec P2025,
+    //    mais il permet de retourner un 404 plus explicite avant l'opération d'écriture.
+    const userExists = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true } // Sélectionne juste l'ID pour vérifier l'existence
+    });
     if (!userExists) {
-        return NextResponse.json({ message: 'Utilisateur non trouvé' }, { status: 404 });
+        return createErrorResponse("Utilisateur non trouvé.", 404);
     }
 
     // 5. Mettre à jour les rôles de l'utilisateur
@@ -77,43 +76,42 @@ export async function PUT(
       where: { id: userId },
       data: {
         roles: {
-          // Utiliser les roleIds validés
           set: roleIds.map(id => ({ id: id })),
         },
       },
-      // Sélectionner les données mises à jour à retourner
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        enabled: true,
-        provider: true,
-        createdAt: true,
-        roles: {
-          select: {
-            id: true,
-            name: true,
-          },
-           orderBy: { name: 'asc' }
-        },
+      select: { // Sélectionner les données mises à jour à retourner
+        id: true, name: true, email: true, image: true, enabled: true,
+        provider: true, createdAt: true,
+        roles: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
       }
     });
 
     console.log(`Roles updated for user ${userId}`);
+    // Réponse de succès standard
     return NextResponse.json(updatedUser);
 
   } catch (error) {
+    // Logguer l'erreur complète côté serveur
     console.error(`Erreur lors de la mise à jour des rôles pour l'utilisateur ${userId}:`, error);
-     // Gérer les erreurs potentielles (ex: ID de rôle invalide -> contrainte FK)
-     if (error instanceof Error && 'code' in error && (error as any).code === 'P2025') {
-         // Code P2025 de Prisma indique souvent un enregistrement lié non trouvé
-         return NextResponse.json({ message: "Echec de la mise à jour: un ou plusieurs ID de rôle sont invalides ou l'utilisateur n'existe plus." }, { status: 400 });
-     }
-     if (error instanceof Error && error.message.includes('foreign key constraint')) { // Moins fiable que le code Prisma
-         return NextResponse.json({ message: "Un ou plusieurs ID de rôle fournis sont invalides." }, { status: 400 });
-     }
-    return NextResponse.json({ message: "Erreur serveur lors de la mise à jour des rôles." }, { status: 500 });
+
+    // Gestion spécifique des erreurs Prisma connues
+    if (error instanceof PrismaClientKnownRequestError) {
+      // P2025: L'enregistrement à mettre à jour (User) n'a pas été trouvé.
+      // Normalement couvert par la vérification userExists, mais sécurité supplémentaire.
+      if (error.code === 'P2025') {
+        return createErrorResponse("L'utilisateur cible n'existe pas.", 404);
+      }
+      // P2003: Violation de contrainte de clé étrangère (ex: un roleId n'existe pas dans la table Role)
+      if (error.code === 'P2003') {
+         // Le champ 'meta.field_name' peut indiquer quelle contrainte a échoué, ici on suppose que c'est lié aux roles.
+         console.warn("Prisma Foreign Key Constraint Failed (P2003) - Likely invalid roleId provided.", error.meta);
+         return createErrorResponse("Échec de la mise à jour: un ou plusieurs ID de rôle fournis sont invalides.", 400);
+      }
+      // Ajouter d'autres codes Prisma si nécessaire...
+    }
+
+    // Retourner une erreur générique 500 pour les autres cas
+    return createErrorResponse("Erreur serveur lors de la mise à jour des rôles.", 500);
   } finally {
     await prisma.$disconnect();
   }
