@@ -53,3 +53,9 @@ La plateforme `orthanc-project` vise à inclure :
 `orthanc-project`, dans cette nouvelle itération, représente une approche résolument moderne et intégrée pour construire un SGIM performant et convivial, prêt à évoluer pour répondre aux exigences complexes du secteur de la santé.
 
 ---
+
+-- implementer la logique de deconnexion de l'application 
+-- corriger le bug de la page d'acceuil 
+-- tester l'API mis en place 
+-- implementer les pages frontend des differents utilisateurs(réfléchir à un moyen d'uniformiser la page et de l'adapter en fonction de l'utilisateur qui se connecte par exemple cela peur être une page composé d'un dashboard avec les suites d'actions prores à chaque utilisateur -- et en complément l'ajout d'un sidebar avec des fonctionnalités nécessaires serait un atout)
+-- vérifier si la logique demandé est respecté 
