@@ -1,39 +1,33 @@
 // prisma/seed.ts
 import { PrismaClient, Prisma } from '@prisma/client';
-// Importer une librairie pour hacher le mot de passe (la même que vous utiliserez pour l'auth locale si vous l'implémentez)
-// Ici, on utilise bcryptjs comme exemple. Installez-le : npm install bcryptjs @types/bcryptjs --save-dev
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-// Définir les rôles de base (Modification: PHYSICIAN -> MEDECIN)
 const rolesToCreate: Prisma.RoleCreateInput[] = [
   { name: 'ADMIN' },
   { name: 'RADIOLOGIST' },
   { name: 'TECHNICIAN' },
-  { name: 'MEDECIN' }, // Remplacé PHYSICIAN par MEDECIN
-  { name: 'SECRETARY' }, // ou SecMed
-  // Ajoutez d'autres rôles si nécessaire
+  { name: 'MEDECIN' },
+  { name: 'SECRETARY' },
 ];
 
 // Définir l'utilisateur admin initial
-const adminEmail = 'admin@orthancproject.com'; // Changez ceci si vous voulez
-const adminPassword = 'adminpassword'; // Changez ceci pour quelque chose de plus sûr, même pour le seed
+const adminEmail = 'admin@orthancproject.com';
+const adminPassword = 'adminpassword';
 
 async function main() {
   console.log(`Start seeding ...`);
 
-  // Créer les rôles (ignorer s'ils existent déjà)
   for (const roleData of rolesToCreate) {
     const role = await prisma.role.upsert({
       where: { name: roleData.name },
-      update: {}, // Ne rien mettre à jour si le rôle existe déjà par nom
-      create: roleData, // Créer le rôle s'il n'existe pas
+      update: {},
+      create: roleData,
     });
     console.log(`Created or found role: ${role.name}`);
   }
 
-  // Récupérer l'ID du rôle ADMIN (inchangé)
   const adminRole = await prisma.role.findUnique({
     where: { name: 'ADMIN' },
   });
@@ -43,22 +37,20 @@ async function main() {
     return;
   }
 
-  // Hasher le mot de passe admin (inchangé)
   const hashedPassword = await bcrypt.hash(adminPassword, 10); // 10 = salt rounds
 
-  // Créer l'utilisateur admin (ignorer s'il existe déjà par email) (inchangé)
   const adminUser = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {}, // Ne rien mettre à jour s'il existe déjà
+    update: {},
     create: {
       email: adminEmail,
-      password: hashedPassword, // Stocker le mot de passe hashé
-      name: 'Admin User', // Nom par défaut
-      provider: 'local', // Indiquer que c'est un compte local
+      password: hashedPassword,
+      name: 'Admin User',
+      provider: 'local',
       enabled: true,
-      emailVerified: new Date(), // Marquer comme vérifié pour le seed
+      emailVerified: new Date(),
       roles: {
-        connect: { id: adminRole.id }, // Connecter au rôle ADMIN
+        connect: { id: adminRole.id },
       },
     },
   });
