@@ -1,60 +1,77 @@
 // src/app/auth/login/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { 
-  EnvelopeIcon, 
-  LockClosedIcon, 
-  ArrowPathIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon
+import { useRouter, useSearchParams } from 'next/navigation'; // Correct imports for App Router
+import { signIn } from 'next-auth/react';
+import { motion } from 'framer-motion'; // Pour les animations
+import {
+  EnvelopeIcon,
+  LockClosedIcon,
+  EyeIcon, // Icône pour voir le mot de passe
+  EyeSlashIcon, // Icône pour cacher le mot de passe
+  ArrowPathIcon, // Icône pour le chargement
+  ExclamationTriangleIcon, // Icône pour les erreurs
+  CheckCircleIcon, // Icône pour le succès
 } from '@heroicons/react/24/outline';
-import { FcGoogle } from 'react-icons/fc';
-import { useInView } from 'react-intersection-observer';
+import { FcGoogle } from "react-icons/fc"; // Icône Google
+import { useInView } from 'react-intersection-observer'; // Pour l'animation d'entrée
 
-// Messages d'erreur personnalisés
+// Messages d'erreur NextAuth mappés en français
 const errorMessages: Record<string, string> = {
-  CredentialsSignin: 'Email ou mot de passe invalide.',
-  OAuthSignin: "Erreur lors de la connexion avec le fournisseur.",
-  OAuthCallback: "Erreur lors de la connexion avec le fournisseur.",
+  CredentialsSignin: 'Adresse email ou mot de passe invalide.',
+  OAuthSignin: "Erreur lors de la connexion avec le fournisseur externe.",
+  OAuthCallback: "Erreur lors du retour du fournisseur externe.",
   OAuthCreateAccount: "Impossible de créer un compte avec ce fournisseur.",
   EmailCreateAccount: "Impossible de créer un compte avec cet email.",
-  Callback: "Erreur lors de la redirection.",
-  OAuthAccountNotLinked: "Cet email est déjà associé à un autre compte.",
+  Callback: "Erreur lors de la redirection après connexion.",
+  OAuthAccountNotLinked: "Cet email est déjà associé à un autre compte via un fournisseur différent. Essayez de vous connecter avec ce fournisseur.",
   EmailSignin: "Impossible d'envoyer l'email de connexion.",
-  CredentialsCreateAccount: "Impossible de créer un compte.",
+  CredentialsCreateAccount: "Impossible de créer un compte avec ces identifiants.",
   SessionRequired: "Veuillez vous connecter pour accéder à cette page.",
-  Default: 'Une erreur est survenue lors de la connexion.',
+  Default: 'Une erreur inattendue est survenue lors de la connexion.',
+  // Ajoutez d'autres erreurs spécifiques si nécessaire (ex: 'Compte désactivé.')
+  "Compte désactivé.": "Votre compte a été désactivé. Veuillez contacter l'administrateur.",
 };
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
+
+  // --- Détermination de la callbackUrl ---
+  // Priorité : paramètre 'callbackUrl', sinon '/admin/users' pour les admins (après check), sinon '/dashboard' par défaut
+  // Note : La logique de redirection *spécifique au rôle* devrait idéalement se faire après la connexion,
+  // mais on peut tenter une redirection par défaut plus pertinente.
+  // '/dashboard' est un bon défaut si cette page existe pour les utilisateurs non-admin.
+  // **Important** : Si `/dashboard` n'existe pas (comme vu dans les logs), mettez une page par défaut qui existe, par exemple '/'.
+  const callbackUrlParam = searchParams?.get('callbackUrl');
+  // Remplacer '/dashboard' par '/' si '/dashboard' cause un 404
+  const defaultRedirect = '/'; // Ou '/dashboard' si cette page existe
+  const callbackUrl = callbackUrlParam || defaultRedirect;
+
+
   const signupSuccess = searchParams?.get('signupSuccess');
-  const errorParam = searchParams?.get('error');
+  const errorParam = searchParams?.get('error'); // Récupère l'erreur passée par NextAuth
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false); // Chargement pour connexion par identifiants
+  const [googleLoading, setGoogleLoading] = useState(false); // Chargement pour connexion Google
+  const [passwordVisible, setPasswordVisible] = useState(false); // État pour la visibilité du mot de passe
 
+  // Hook pour détecter quand le composant devient visible (pour l'animation)
   const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
+    triggerOnce: true, // L'animation ne se déclenche qu'une fois
+    threshold: 0.1, // Se déclenche quand 10% est visible
   });
 
-  // Gestion des paramètres d'URL
+  // Gère les messages d'erreur ou de succès provenant des paramètres d'URL
   useEffect(() => {
     if (signupSuccess) {
       setSuccessMessage('Inscription réussie ! Vous pouvez maintenant vous connecter.');
-      // Nettoyer l'URL sans recharger la page
+      // Nettoie l'URL pour enlever le paramètre sans recharger
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('signupSuccess');
       window.history.replaceState({}, '', newUrl.toString());
@@ -62,104 +79,125 @@ export default function LoginPage() {
 
     if (errorParam) {
       setError(errorMessages[errorParam] || errorMessages.Default);
-      // Nettoyer l'URL sans recharger la page
+      // Nettoie l'URL
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('error');
       window.history.replaceState({}, '', newUrl.toString());
     }
   }, [signupSuccess, errorParam]);
 
+  // Gère les changements dans les champs de formulaire
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Effacer les messages d'erreur quand l'utilisateur modifie le formulaire
+    // Efface l'erreur dès que l'utilisateur modifie un champ
     if (error) setError(null);
   };
 
+  // Valide les champs du formulaire avant la soumission
   const validateForm = (): boolean => {
     if (!formData.email.trim()) {
       setError('Veuillez entrer votre adresse email.');
       return false;
     }
-
     if (!formData.password) {
       setError('Veuillez entrer votre mot de passe.');
       return false;
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Veuillez entrer une adresse email valide.');
       return false;
     }
-
+    // Si tout est valide, on s'assure qu'il n'y a plus d'erreur affichée
+    // setError(null); // Déjà géré dans handleChange et avant handleSubmit
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Gère la soumission du formulaire de connexion par identifiants
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     setLoading(true);
 
     try {
+      // --- CORRECTION PRINCIPALE : Suppression de redirect: false ---
+      // Laisse NextAuth gérer la redirection vers callbackUrl en cas de succès.
       const result = await signIn('credentials', {
-        redirect: false,
+        // redirect: false, // <-- LIGNE SUPPRIMÉE / COMMENTÉE
         email: formData.email,
         password: formData.password,
-        callbackUrl,
+        callbackUrl: callbackUrl // <-- IMPORTANT : Fournir la destination souhaitée
       });
 
+      // Si signIn retourne (ce qui arrive généralement seulement en cas d'erreur
+      // quand redirect n'est PAS false), on vérifie explicitement l'erreur.
       if (result?.error) {
+        // Lance une erreur pour qu'elle soit attrapée par le bloc catch
         throw new Error(errorMessages[result.error] || errorMessages.Default);
       }
 
-      if (result?.ok) {
-        router.push(callbackUrl);
-        router.refresh();
-      } else {
+      // Si on arrive ici sans erreur et sans redirection, c'est inattendu
+      if (!result?.ok && !result?.error) {
         throw new Error(errorMessages.Default);
       }
+
+      // Si tout s'est bien passé, NextAuth a déjà redirigé l'utilisateur.
+      // Le code ci-dessous ne sera normalement pas atteint en cas de succès.
+
     } catch (err: any) {
-      console.error("Login Error:", err);
-      setError(err.message);
+      console.error("Login Error (Credentials):", err);
+      // Affiche l'erreur spécifique lancée ou une erreur par défaut
+      setError(err.message || 'Erreur lors de la connexion.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Gère la connexion via Google
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError(null);
-    
+    setSuccessMessage(null);
     try {
+      // Laisse NextAuth gérer la redirection vers Google et le retour
       await signIn('google', { callbackUrl });
+      // Si la redirection réussit, cette ligne n'est pas atteinte.
+      // Si elle échoue avant la redirection, le catch sera exécuté.
     } catch (err) {
       console.error("Google Sign-In Error:", err);
-      setError("Erreur lors de la connexion avec Google.");
-      setGoogleLoading(false);
+      setError("Impossible de démarrer la connexion avec Google.");
+      setGoogleLoading(false); // Réactiver le bouton si l'initiation échoue
     }
+    // Ne pas mettre setGoogleLoading(false) ici, car la page va naviguer
   };
 
   return (
+    // Fond général de la page
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
+      {/* Conteneur principal avec animation d'entrée */}
       <motion.div
-        ref={ref}
+        ref={ref} // Référence pour useInView
         initial={{ opacity: 0, y: 20 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8"
       >
+        {/* En-tête avec logo et titre */}
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <svg className="h-10 w-10 text-cyan-600" viewBox="0 0 24 24" fill="currentColor">
+            <Link href="/" className="flex items-center space-x-2 group">
+              {/* Logo SVG (placeholder, remplacez par votre vrai logo) */}
+              <svg className="h-10 w-10 text-cyan-600 group-hover:text-blue-700 transition-colors" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H8l4-5 4 5h-3v4H11z"/>
               </svg>
-              <span className="text-3xl font-bold text-cyan-600">Orthanc</span>
+              <span className="text-3xl font-bold text-cyan-600 group-hover:text-blue-700 transition-colors">Orthanc</span>
             </Link>
           </div>
 
@@ -168,8 +206,8 @@ export default function LoginPage() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Ou{' '}
-            <Link 
-              href="/auth/signup" 
+            <Link
+              href="/auth/signup" // Lien vers la page d'inscription
               className="font-medium text-cyan-600 hover:text-cyan-500 transition-colors"
             >
               créez un compte gratuitement
@@ -177,39 +215,43 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* Carte contenant le formulaire */}
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-200">
-            {/* Messages d'état */}
+          <div className="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border border-gray-200">
+            {/* Affichage conditionnel des messages d'erreur */}
             {error && (
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: -10 }} // Animation d'apparition
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-4 rounded-md bg-red-50 p-4 flex items-start"
+                className="mb-4 rounded-md bg-red-50 p-4 flex items-start border border-red-200"
               >
-                <ExclamationTriangleIcon className="h-5 w-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" />
+                <ExclamationTriangleIcon className="h-5 w-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" aria-hidden="true" />
                 <div className="text-sm text-red-700">{error}</div>
               </motion.div>
             )}
 
+            {/* Affichage conditionnel des messages de succès */}
             {successMessage && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-4 rounded-md bg-green-50 p-4 flex items-start"
+                className="mb-4 rounded-md bg-green-50 p-4 flex items-start border border-green-200"
               >
-                <CheckCircleIcon className="h-5 w-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
+                <CheckCircleIcon className="h-5 w-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" aria-hidden="true" />
                 <div className="text-sm text-green-700">{successMessage}</div>
               </motion.div>
             )}
 
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Formulaire de connexion */}
+            <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+              {/* Champ Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-sm font-medium leading-6 text-gray-900">
                   Adresse email
                 </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+                <div className="mt-2 relative rounded-md shadow-sm">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                   <input
                     id="email"
@@ -219,86 +261,92 @@ export default function LoginPage() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={loading || googleLoading}
-                    className={`block w-full pl-10 pr-3 py-3 border ${error ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm`}
+                    disabled={loading || googleLoading} // Désactivé pendant le chargement
+                    // Style conditionnel en cas d'erreur sur ce champ spécifique
+                    className={`block w-full rounded-md border-0 py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ${
+                      error?.toLowerCase().includes('email') ? 'ring-red-500' : 'ring-gray-300'
+                    } placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-600 sm:text-sm sm:leading-6 transition-shadow duration-150 ease-in-out`}
                     placeholder="votre@email.com"
                   />
                 </div>
               </div>
 
+              {/* Champ Mot de passe */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-900">
                   Mot de passe
                 </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                <div className="mt-2 relative rounded-md shadow-sm">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <LockClosedIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                   <input
                     id="password"
                     name="password"
-                    type={passwordVisible ? "text" : "password"}
+                    type={passwordVisible ? 'text' : 'password'} // Type dynamique basé sur l'état
                     autoComplete="current-password"
                     required
                     value={formData.password}
                     onChange={handleChange}
                     disabled={loading || googleLoading}
-                    className={`block w-full pl-10 pr-10 py-3 border ${error ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm`}
+                     // Style conditionnel en cas d'erreur sur ce champ spécifique
+                    className={`block w-full rounded-md border-0 py-3 pl-10 pr-10 text-gray-900 ring-1 ring-inset ${
+                      error?.toLowerCase().includes('passe') ? 'ring-red-500' : 'ring-gray-300'
+                    } placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-600 sm:text-sm sm:leading-6 transition-shadow duration-150 ease-in-out`}
                     placeholder="••••••••"
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => setPasswordVisible(!passwordVisible)}
-                      className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-                    >
-                      {passwordVisible ? (
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      ) : (
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
+                  {/* Bouton pour afficher/cacher le mot de passe */}
+                  <button
+                    type="button"
+                    onClick={() => setPasswordVisible(!passwordVisible)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-600 rounded-md"
+                    aria-label={passwordVisible ? "Cacher le mot de passe" : "Afficher le mot de passe"}
+                  >
+                    {passwordVisible ? (
+                      <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                    )}
+                  </button>
                 </div>
               </div>
 
+              {/* Options : Se souvenir de moi et Mot de passe oublié */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    className="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-300 rounded"
+                    className="h-4 w-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-600"
                   />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor="remember-me" className="ml-2 block text-sm leading-6 text-gray-900">
                     Se souvenir de moi
                   </label>
                 </div>
 
                 <div className="text-sm">
-                  <Link 
-                    href="/auth/reset-password" 
-                    className="font-medium text-cyan-600 hover:text-cyan-500 transition-colors"
+                  <Link
+                    href="/auth/reset-password" // Lien vers la page de réinitialisation (à créer)
+                    className="font-semibold text-cyan-600 hover:text-cyan-500 transition-colors"
                   >
                     Mot de passe oublié ?
                   </Link>
                 </div>
               </div>
 
+              {/* Bouton de soumission principal */}
               <div>
                 <button
                   type="submit"
-                  disabled={loading || googleLoading}
-                  className={`w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition-all duration-300 ${(loading || googleLoading) ? 'opacity-75 cursor-not-allowed' : ''}`}
+                  disabled={loading || googleLoading} // Désactivé pendant les deux types de chargement
+                  className={`flex w-full justify-center items-center rounded-md bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:from-cyan-700 hover:to-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 transition-all duration-300 ease-in-out ${
+                    (loading || googleLoading) ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-lg transform hover:-translate-y-0.5'
+                  }`}
                 >
                   {loading ? (
                     <>
-                      <ArrowPathIcon className="animate-spin h-5 w-5 mr-2" />
+                      <ArrowPathIcon className="animate-spin h-5 w-5 mr-2" aria-hidden="true" />
                       Connexion en cours...
                     </>
                   ) : (
@@ -308,45 +356,59 @@ export default function LoginPage() {
               </div>
             </form>
 
+            {/* Séparateur "Ou continuez avec" */}
             <div className="mt-6">
               <div className="relative">
-                <div className="absolute inset-0 flex items-center">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
                   <div className="w-full border-t border-gray-300" />
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">
+                <div className="relative flex justify-center text-sm leading-6">
+                  <span className="bg-white px-6 text-gray-500">
                     Ou continuez avec
                   </span>
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 gap-3">
+              {/* Boutons de connexion sociale */}
+              <div className="mt-6 grid grid-cols-1 gap-4">
+                {/* Bouton Google */}
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  disabled={loading || googleLoading}
-                  className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition-colors duration-200"
+                  disabled={loading || googleLoading} // Désactivé si l'autre méthode charge
+                  className={`flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent transition-all duration-200 ease-in-out ${
+                    (loading || googleLoading) ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-md'
+                  }`}
                 >
                   {googleLoading ? (
-                    <ArrowPathIcon className="animate-spin h-5 w-5 mr-2 text-gray-500" />
+                     <ArrowPathIcon className="animate-spin h-5 w-5 text-gray-500" aria-hidden="true" />
                   ) : (
-                    <FcGoogle className="h-5 w-5 mr-2" />
+                     <FcGoogle className="h-5 w-5" aria-hidden="true" />
                   )}
-                  Google
+                  <span className="text-sm font-semibold leading-6">Google</span>
                 </button>
+
+                {/* Ajoutez d'autres fournisseurs ici si nécessaire (ex: GitHub, Facebook) */}
+                {/*
+                <button type="button" disabled={loading || googleLoading} className="...">
+                  <FaGithub className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-sm font-semibold leading-6">GitHub</span>
+                </button>
+                */}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 text-center text-sm text-gray-600">
+        {/* Liens légaux en bas */}
+        <div className="mt-8 text-center text-sm text-gray-500">
           <p>
             En vous connectant, vous acceptez nos{' '}
-            <Link href="/terms" className="font-medium text-cyan-600 hover:text-cyan-500 transition-colors">
+            <Link href="/terms" className="font-medium text-cyan-600 hover:text-cyan-500">
               Conditions d'utilisation
-            </Link>{' '}
-            et notre{' '}
-            <Link href="/privacy" className="font-medium text-cyan-600 hover:text-cyan-500 transition-colors">
+            </Link>
+            {' '}et notre{' '}
+            <Link href="/privacy" className="font-medium text-cyan-600 hover:text-cyan-500">
               Politique de confidentialité
             </Link>.
           </p>
