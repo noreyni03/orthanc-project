@@ -2,14 +2,11 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
-import { createErrorResponse } from '@/lib/apiUtils'; // Importer l'utilitaire
-
-// No input validation needed for GET /api/admin/roles
+import { createErrorResponse } from '@/lib/apiUtils';
 
 const prisma = new PrismaClient();
 
-export async function GET() {
-  const session = await auth();
+export async function GET() {  const session = await auth();
 
   // Protect route: Only Admins
   if (!session?.user?.roles?.includes('ADMIN')) {
