@@ -53,8 +53,6 @@ interface InstanceMetadata {
     rescaleIntercept: number;
     rescaleSlope: number;
 }
-// ------------------------------------------------------------------
-
 
 export async function GET(
     request: NextRequest,
@@ -141,8 +139,7 @@ export async function GET(
         rescaleIntercept: parseFloat(instance.MainDicomTags?.RescaleIntercept || '0'),
         rescaleSlope: parseFloat(instance.MainDicomTags?.RescaleSlope || '1'),
     }));
-    // --------------------------------------------------------------------------
-
+    
     // Trier les instances par InstanceNumber (maintenant correctement typé)
     instancesList.sort((a, b) => a.instanceNumber - b.instanceNumber);
 
