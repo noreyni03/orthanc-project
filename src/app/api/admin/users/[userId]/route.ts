@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
 import { z } from 'zod';
-import { createErrorResponse } from '@/lib/apiUtils'; // Importer l'utilitaire
+import { createErrorResponse } from '@/lib/apiUtils';
 
 const prisma = new PrismaClient();
 
