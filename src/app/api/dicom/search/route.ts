@@ -1,12 +1,11 @@
 // src/app/api/dicom/search/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/api/auth/[...nextauth]/route'; // Assumed path to your auth config
+import { auth } from '@/app/api/auth/[...nextauth]/route';
 import { z } from 'zod';
 import { fetchOrthanc } from '@/lib/orthancApi';
 import { createErrorResponse } from '@/lib/apiUtils';
 
-// Placeholder pour la fonction d'audit log - à implémenter séparément
-// import { logAuditEvent } from '@/lib/auditLog';
+
 async function logAuditEvent(userId: string, email: string | null | undefined, action: string, details?: any): Promise<void> {
     // Implémentation future : enregistrer l'événement dans la DB ou un système de log
     console.log(`AUDIT LOG: User ${email} (${userId}) performed action: ${action}`, details ? { details } : '');
@@ -21,12 +20,10 @@ const searchSchema = z.object({
   modalities: z.array(z.string().trim().toUpperCase()).optional(), // Trim & uppercase modalities
   accessionNumber: z.string().trim().optional(),
   searchLevel: z.enum(['Patient', 'Study', 'Series']).default('Study'),
-  // Ajouter d'autres champs facultatifs si nécessaire
-  // referringPhysicianName: z.string().optional(),
 });
 
 // Rôles autorisés pour la recherche
-const allowedRoles = ['TECHNICIAN', 'PHYSICIAN', 'RADIOLOGIST', 'ADMIN']; // 'PHYSICIAN' remplace 'MEDECIN' pour cohérence avec le seed
+const allowedRoles = ['TECHNICIAN', 'MEDECIN', 'RADIOLOGIST', 'ADMIN']; 
 
 export async function POST(request: NextRequest) {
   // 1. Authentification et Autorisation
