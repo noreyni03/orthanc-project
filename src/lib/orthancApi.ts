@@ -1,9 +1,3 @@
-// src/lib/orthancApi.ts
-// PAS besoin d'importer 'node-fetch' ou ses types ici.
-// Les types globaux Response et RequestInit suffisent.
-
-// --- Configuration & Validation ---
-
 const ORTHANC_API_BASEURL = process.env.ORTHANC_API_BASEURL;
 
 // Vérification critique de la variable d'environnement au chargement du module
@@ -68,9 +62,3 @@ export async function fetchOrthanc(
     throw error;
   }
 }
-
-// Exemples (inchangés)
-/*
-async function getOrthancStudies() { ... }
-async function findPatientInOrthanc(query: any) { ... }
-*/

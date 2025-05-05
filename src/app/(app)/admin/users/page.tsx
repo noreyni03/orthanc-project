@@ -1,7 +1,7 @@
 // src/app/(app)/admin/users/page.tsx
 'use client';
 
-import withAuth from '@/components/withAuth';
+// import withAuth from '@/components/withAuth';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image'; // Import Image component
 
@@ -292,4 +292,4 @@ function AdminUsersPage() {
 }
 
 // Protéger la page avec le HOC
-export default withAuth(AdminUsersPage, { allowedRoles: ['ADMIN'] });
+export default AdminUsersPage;

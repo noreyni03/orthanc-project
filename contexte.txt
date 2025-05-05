@@ -16,7 +16,7 @@ L'objectif est de fournir une **plateforme web fullstack unique et intégrée po
 
 `orthanc-project` adopte une architecture **FullStack Next.js** :
 
-*   **Framework :** **Next.js 14+** (utilisant React 18+) avec le **App Router**. Gère à la fois :
+*   **Framework :** **Next.js avec le **App Router**. Gère à la fois :
     *   Le **Frontend :** Interface utilisateur réactive et moderne (rendue principalement côté client).
     *   Le **Backend :** Logique métier, accès aux données et intégrations via les **API Routes** de Next.js.
 *   **Langage :** **TypeScript** sur l'ensemble de la stack pour la robustesse et la maintenabilité.
@@ -30,7 +30,7 @@ L'objectif est de fournir une **plateforme web fullstack unique et intégrée po
 *   **Animation (Optionnel) :** **Framer Motion** pour des animations fluides et complexes.
 *   **Environnement :** **Docker et Docker Compose** pour gérer les services externes (Postgres, Orthanc, MinIO) de manière isolée et reproductible.
 
-**Fonctionnalités Clés (MVP et Vision)**
+**Fonctionnalités Clés**
 
 La plateforme `orthanc-project` vise à inclure :
 

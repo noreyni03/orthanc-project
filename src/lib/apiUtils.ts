@@ -21,6 +21,3 @@ export function createErrorResponse(
   };
   return NextResponse.json(responseBody, { status });
 }
-
-// Optionnel: Tu pourrais aussi ajouter une fonction pour les réponses de succès ici
-// export function createSuccessResponse(data: any, status: number = 200) { ... }
