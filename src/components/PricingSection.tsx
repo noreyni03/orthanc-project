@@ -3,7 +3,7 @@ import { Disclosure } from '@headlessui/react';
 import { CheckCircleIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/solid';
 import MotionSection from './MotionSection';
 import Link from 'next/link';
-import { motion } from 'framer-motion'; // Added this import
+import { motion } from 'framer-motion';
 
 const PricingSection = () => {
   const plans = [
