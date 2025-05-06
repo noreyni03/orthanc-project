@@ -8,7 +8,7 @@ import { createErrorResponse } from '@/lib/apiUtils';
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
 
-// Schéma de validation Zod (inchangé)
+// Schéma de validation Zod
 const registerSchema = z.object({
   email: z.string().email({ message: "Format d'email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit faire au moins 6 caractères" }),
@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
         roles: {
           connect: { name: 'TECHNICIAN' } // Connecter au rôle TECHNICIAN
         }
-        // -------------------------------------------------
       },
       select: { // Sélectionner les champs à retourner
         id: true,
