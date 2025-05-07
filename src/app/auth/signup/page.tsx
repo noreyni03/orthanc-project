@@ -211,7 +211,7 @@ export default function SignupPage() {
                     value={formData.name}
                     onChange={handleChange}
                     disabled={loading || googleLoading}
-                    className={`block w-full pl-10 pr-3 py-3 rounded-md border-0 text-gray-900 ring-1 ring-inset ${error?.toLowerCase().includes('nom') ? 'ring-red-500' : 'ring-gray-300'} placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-600 sm:text-sm sm:leading-6`}
+                    className={`block w-full pl-10 pr-3 py-3 border ${error?.toLowerCase().includes('nom') ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm`}
                     placeholder="Jean Dupont"
                   />
                 </div>
@@ -234,7 +234,7 @@ export default function SignupPage() {
                     value={formData.email}
                     onChange={handleChange}
                     disabled={loading || googleLoading}
-                    className={`block w-full pl-10 pr-3 py-3 rounded-md border-0 text-gray-900 ring-1 ring-inset ${error?.toLowerCase().includes('email') ? 'ring-red-500' : 'ring-gray-300'} placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-600 sm:text-sm sm:leading-6`}
+                    className={`block w-full pl-10 pr-3 py-3 border ${error?.toLowerCase().includes('email') ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm`}
                     placeholder="votre@email.com"
                   />
                 </div>
@@ -257,7 +257,7 @@ export default function SignupPage() {
                     value={formData.password}
                     onChange={handleChange}
                     disabled={loading || googleLoading}
-                    className={`block w-full pl-10 pr-10 py-3 rounded-md border-0 text-gray-900 ring-1 ring-inset ${error?.toLowerCase().includes('passe') ? 'ring-red-500' : 'ring-gray-300'} placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-600 sm:text-sm sm:leading-6`}
+                    className={`block w-full pl-10 pr-10 py-3 border ${error?.toLowerCase().includes('passe') ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm`}
                     placeholder="••••••••"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -301,7 +301,7 @@ export default function SignupPage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     disabled={loading || googleLoading}
-                    className={`block w-full pl-10 pr-10 py-3 rounded-md border-0 text-gray-900 ring-1 ring-inset ${error?.toLowerCase().includes('correspondent') ? 'ring-red-500' : 'ring-gray-300'} placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-600 sm:text-sm sm:leading-6`}
+                    className={`block w-full pl-10 pr-10 py-3 border ${error?.toLowerCase().includes('correspondent') ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm`}
                     placeholder="••••••••"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
