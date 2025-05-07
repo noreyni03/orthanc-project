@@ -215,12 +215,12 @@ const Navbar = () => {
 
               {status === 'unauthenticated' && (
                 <>
-                  <button
-                    onClick={() => signIn()}
+                  <Link
+                    href="/auth/login"
                     className="text-gray-600 hover:text-blue-600 px-4 py-2 text-sm font-medium transition-colors rounded-md hover:bg-gray-100"
                   >
                     Connexion
-                  </button>
+                  </Link>
                   <Link
                     href="/auth/signup"
                     className="inline-flex items-center px-5 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105"
