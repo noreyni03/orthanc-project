@@ -8,9 +8,13 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   const session = await auth();
+  
+  console.log('Session in admin route:', session?.user);
+  console.log('User roles:', session?.user?.roles);
 
   // Protect route: Only Admins
   if (!session?.user?.roles?.includes('ADMIN')) {
+    console.log('Access denied - user roles:', session?.user?.roles);
     // Utiliser createErrorResponse pour l'accès refusé
     return createErrorResponse("Accès refusé. Seuls les administrateurs peuvent accéder à cette ressource.", 403);
   }
