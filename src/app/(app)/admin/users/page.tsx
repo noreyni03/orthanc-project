@@ -15,24 +15,24 @@ interface UserAdminView {
   id: string;
   name?: string | null;
   email?: string | null;
-  image?: string | null; // Added image
-  roles: Role[]; // Use Role interface
+  image?: string | null;
+  roles: Role[];
   enabled: boolean;
-  provider: string; // Added provider
-  createdAt: string; // Added createdAt
+  provider: string;
+  createdAt: string;
 }
 
 function AdminUsersPage() {
   const [users, setUsers] = useState<UserAdminView[]>([]);
-  const [allRoles, setAllRoles] = useState<Role[]>([]); // State for all available roles
+  const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
 
   // --- State for Editing Roles ---
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [selectedRoles, setSelectedRoles] = useState<Record<number, boolean>>({}); // Map roleId -> isSelected
-  const [savingUserId, setSavingUserId] = useState<string | null>(null); // Loading state for save button
+  const [selectedRoles, setSelectedRoles] = useState<Record<number, boolean>>({});
+  const [savingUserId, setSavingUserId] = useState<string | null>(null);
 
   // Fetch initial data (users and roles)
   useEffect(() => {
