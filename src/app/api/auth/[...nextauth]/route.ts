@@ -82,52 +82,23 @@ export const authOptions: NextAuthConfig = {
   secret: nextAuthSecret,
   callbacks: {
     async session({ session, user }: { session: Session; user: AdapterUser }) {
-      if (session?.user && user?.id) {
+      if (session.user) {
         session.user.id = user.id;
-        try {
-            let userWithRolesFromDb = await prisma.user.findUnique({
-              where: { id: user.id },
-              select: {
-                email: true, 
-                roles: { select: { name: true } },
-              },
-            });
-
-            if (userWithRolesFromDb && !userWithRolesFromDb.roles?.length) {
-              const externalAccount = await prisma.account.findFirst({
-                where: { userId: user.id, provider: { not: 'credentials' } }, 
-                select: { provider: true } 
-              });
-
-              if (externalAccount) {
-                try {
-                  console.log(`Assigning default TECHNICIAN role to new/roleless external user: ${user.id} (${userWithRolesFromDb.email})`);
-                  await prisma.user.update({
-                    where: { id: user.id },
-                    data: {
-                      roles: { connect: { name: 'TECHNICIAN' } } 
-                    }
-                  });
-                  userWithRolesFromDb.roles = [{ name: 'TECHNICIAN' }];
-                  console.log(`Default role assigned successfully to ${user.id}`);
-                } catch (updateError) {
-                  console.error(`Failed to assign default TECHNICIAN role to user ${user.id}:`, updateError);
-                   if (updateError instanceof Error && updateError.message.toLowerCase().includes('record to connect not found')) {
-                     console.error("CRITICAL: Default role 'TECHNICIAN' not found in database during session update.");
-                   }
-                }
-              }
+        
+        // Récupérer explicitement les rôles depuis la base de données
+        const userWithRoles = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: {
+            roles: {
+              select: { name: true }
             }
-            
-            session.user.roles = userWithRolesFromDb?.roles.map((role) => role.name) ?? [];
-            console.log(`Session callback: User roles for ${user.id} set to:`, session.user.roles);
-
-         } catch (dbError) {
-             console.error(`Session callback: Error fetching/updating roles from DB for user ${user.id}`, dbError);
-             session.user.roles = []; 
-         }
-      } else {
-          console.warn("Session callback: session.user or user.id missing.");
+          }
+        });
+        
+        // Assigner les rôles à la session
+        session.user.roles = userWithRoles?.roles.map(role => role.name) || [];
+        
+        console.log('Session roles:', session.user.roles); // Pour debug
       }
       return session;
     },
