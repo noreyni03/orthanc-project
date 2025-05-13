@@ -31,7 +31,6 @@ const errorMessages: Record<string, string> = {
   CredentialsCreateAccount: "Impossible de créer un compte avec ces identifiants.",
   SessionRequired: "Veuillez vous connecter pour accéder à cette page.",
   Default: 'Une erreur inattendue est survenue lors de la connexion.',
-  // Ajoutez d'autres erreurs spécifiques si nécessaire (ex: 'Compte désactivé.')
   "Compte désactivé.": "Votre compte a été désactivé. Veuillez contacter l'administrateur.",
 };
 
@@ -39,15 +38,9 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // --- Détermination de la callbackUrl ---
-  // Priorité : paramètre 'callbackUrl', sinon '/admin/users' pour les admins (après check), sinon '/dashboard' par défaut
-  // Note : La logique de redirection *spécifique au rôle* devrait idéalement se faire après la connexion,
-  // mais on peut tenter une redirection par défaut plus pertinente.
-  // '/dashboard' est un bon défaut si cette page existe pour les utilisateurs non-admin.
-  // **Important** : Si `/dashboard` n'existe pas (comme vu dans les logs), mettez une page par défaut qui existe, par exemple '/'.
   const callbackUrlParam = searchParams?.get('callbackUrl');
-  // Remplacer '/dashboard' par '/' si '/dashboard' cause un 404
-  const defaultRedirect = '/'; // Ou '/dashboard' si cette page existe
+  // MODIFICATION: Assurer que la redirection par défaut est vers /dashboard
+  const defaultRedirect = '/dashboard'; // Cible principale pour les utilisateurs non-admin
   const callbackUrl = callbackUrlParam || defaultRedirect;
 
 
@@ -61,17 +54,14 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false); // Chargement pour connexion Google
   const [passwordVisible, setPasswordVisible] = useState(false); // État pour la visibilité du mot de passe
 
-  // Hook pour détecter quand le composant devient visible (pour l'animation)
   const { ref, inView } = useInView({
-    triggerOnce: true, // L'animation ne se déclenche qu'une fois
-    threshold: 0.1, // Se déclenche quand 10% est visible
+    triggerOnce: true, 
+    threshold: 0.1, 
   });
 
-  // Gère les messages d'erreur ou de succès provenant des paramètres d'URL
   useEffect(() => {
     if (signupSuccess) {
       setSuccessMessage('Inscription réussie ! Vous pouvez maintenant vous connecter.');
-      // Nettoie l'URL pour enlever le paramètre sans recharger
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('signupSuccess');
       window.history.replaceState({}, '', newUrl.toString());
@@ -79,22 +69,18 @@ export default function LoginPage() {
 
     if (errorParam) {
       setError(errorMessages[errorParam] || errorMessages.Default);
-      // Nettoie l'URL
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('error');
       window.history.replaceState({}, '', newUrl.toString());
     }
   }, [signupSuccess, errorParam]);
 
-  // Gère les changements dans les champs de formulaire
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Efface l'erreur dès que l'utilisateur modifie un champ
     if (error) setError(null);
   };
 
-  // Valide les champs du formulaire avant la soumission
   const validateForm = (): boolean => {
     if (!formData.email.trim()) {
       setError('Veuillez entrer votre adresse email.');
@@ -109,12 +95,9 @@ export default function LoginPage() {
       setError('Veuillez entrer une adresse email valide.');
       return false;
     }
-    // Si tout est valide, on s'assure qu'il n'y a plus d'erreur affichée
-    // setError(null); // Déjà géré dans handleChange et avant handleSubmit
     return true;
   };
 
-  // Gère la soumission du formulaire de connexion par identifiants
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -127,73 +110,67 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // --- CORRECTION PRINCIPALE : Suppression de redirect: false ---
-      // Laisse NextAuth gérer la redirection vers callbackUrl en cas de succès.
+      // NextAuth gère la redirection vers callbackUrl si elle est fournie et la connexion réussit.
+      // Le callback signIn dans [...nextauth]/route.ts peut surcharger cette redirection (ex: pour les admins).
       const result = await signIn('credentials', {
-        // redirect: false, // <-- LIGNE SUPPRIMÉE / COMMENTÉE
+        // redirect: false, // Commenté/supprimé pour laisser NextAuth gérer la redirection
         email: formData.email,
         password: formData.password,
-        callbackUrl: callbackUrl // <-- IMPORTANT : Fournir la destination souhaitée
+        callbackUrl: callbackUrl // Fournir la callbackUrl souhaitée
       });
 
-      // Si signIn retourne (ce qui arrive généralement seulement en cas d'erreur
-      // quand redirect n'est PAS false), on vérifie explicitement l'erreur.
+      // Ce bloc est principalement atteint si 'redirect: false' est utilisé, ou si une erreur survient AVANT la redirection.
+      // Avec redirect: true (par défaut), si la connexion est OK, l'utilisateur est redirigé.
+      // Si une erreur se produit (ex: mauvais identifiants), result.error sera populé et la page ne redirigera pas (elle est réaffichée avec l'erreur dans l'URL).
       if (result?.error) {
-        // Lance une erreur pour qu'elle soit attrapée par le bloc catch
         throw new Error(errorMessages[result.error] || errorMessages.Default);
       }
-
-      // Si on arrive ici sans erreur et sans redirection, c'est inattendu
-      if (!result?.ok && !result?.error) {
-        throw new Error(errorMessages.Default);
+      
+      // Si signIn ne redirige pas ET ne retourne pas d'erreur, c'est un cas inattendu ou un flux différent (ex: 2FA)
+      // Pour une simple connexion, on s'attend soit à une redirection, soit à une erreur.
+      if (result && !result.ok && !result.url) {
+        // Ce cas peut se produire si signIn est interrompu ou si une configuration spécifique l'empêche de rediriger.
+        // On s'appuie sur errorParam dans l'URL pour afficher l'erreur.
+        console.warn("Sign-in result was not OK and did not redirect, but no explicit error returned by signIn function.", result);
       }
-
-      // Si tout s'est bien passé, NextAuth a déjà redirigé l'utilisateur.
-      // Le code ci-dessous ne sera normalement pas atteint en cas de succès.
+      // En cas de succès avec redirect: true (par défaut), l'utilisateur est redirigé par NextAuth,
+      // donc le code ici ne devrait pas être atteint sur un succès.
+      // La page de login est rechargée par NextAuth avec `?error=...` dans l'URL en cas d'échec.
 
     } catch (err: any) {
       console.error("Login Error (Credentials):", err);
-      // Affiche l'erreur spécifique lancée ou une erreur par défaut
       setError(err.message || 'Erreur lors de la connexion.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Gère la connexion via Google
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError(null);
     setSuccessMessage(null);
     try {
-      // Laisse NextAuth gérer la redirection vers Google et le retour
+      // Laisser NextAuth gérer la redirection. callbackUrl est fournie.
       await signIn('google', { callbackUrl });
-      // Si la redirection réussit, cette ligne n'est pas atteinte.
-      // Si elle échoue avant la redirection, le catch sera exécuté.
     } catch (err) {
       console.error("Google Sign-In Error:", err);
       setError("Impossible de démarrer la connexion avec Google.");
-      setGoogleLoading(false); // Réactiver le bouton si l'initiation échoue
+      setGoogleLoading(false);
     }
-    // Ne pas mettre setGoogleLoading(false) ici, car la page va naviguer
   };
 
   return (
-    // Fond général de la page
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
-      {/* Conteneur principal avec animation d'entrée */}
       <motion.div
-        ref={ref} // Référence pour useInView
+        ref={ref}
         initial={{ opacity: 0, y: 20 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8"
       >
-        {/* En-tête avec logo et titre */}
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <Link href="/" className="flex items-center space-x-2 group">
-              {/* Logo SVG (placeholder, remplacez par votre vrai logo) */}
               <svg className="h-10 w-10 text-cyan-600 group-hover:text-blue-700 transition-colors" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H8l4-5 4 5h-3v4H11z"/>
               </svg>
@@ -207,7 +184,7 @@ export default function LoginPage() {
           <p className="mt-2 text-center text-sm text-gray-600">
             Ou{' '}
             <Link
-              href="/auth/signup" // Lien vers la page d'inscription
+              href="/auth/signup"
               className="font-medium text-cyan-600 hover:text-cyan-500 transition-colors"
             >
               créez un compte gratuitement
@@ -215,13 +192,11 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Carte contenant le formulaire */}
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border border-gray-200">
-            {/* Affichage conditionnel des messages d'erreur */}
             {error && (
               <motion.div
-                initial={{ opacity: 0, y: -10 }} // Animation d'apparition
+                initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-4 rounded-md bg-red-50 p-4 flex items-start border border-red-200"
               >
@@ -230,7 +205,6 @@ export default function LoginPage() {
               </motion.div>
             )}
 
-            {/* Affichage conditionnel des messages de succès */}
             {successMessage && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -242,9 +216,7 @@ export default function LoginPage() {
               </motion.div>
             )}
 
-            {/* Formulaire de connexion */}
             <form className="space-y-6" onSubmit={handleSubmit} noValidate>
-              {/* Champ Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium leading-6 text-gray-900">
                   Adresse email
@@ -261,17 +233,15 @@ export default function LoginPage() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={loading || googleLoading} // Désactivé pendant le chargement
-                    // Style conditionnel en cas d'erreur sur ce champ spécifique
+                    disabled={loading || googleLoading}
                     className={`block w-full rounded-md border-0 py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ${
-                      error?.toLowerCase().includes('email') ? 'ring-red-500' : 'ring-gray-300'
+                      error?.toLowerCase().includes('email') || error?.toLowerCase().includes('invalide') ? 'ring-red-500' : 'ring-gray-300'
                     } placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-600 sm:text-sm sm:leading-6 transition-shadow duration-150 ease-in-out`}
                     placeholder="votre@email.com"
                   />
                 </div>
               </div>
 
-              {/* Champ Mot de passe */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-900">
                   Mot de passe
@@ -283,19 +253,17 @@ export default function LoginPage() {
                   <input
                     id="password"
                     name="password"
-                    type={passwordVisible ? 'text' : 'password'} // Type dynamique basé sur l'état
+                    type={passwordVisible ? 'text' : 'password'} 
                     autoComplete="current-password"
                     required
                     value={formData.password}
                     onChange={handleChange}
                     disabled={loading || googleLoading}
-                     // Style conditionnel en cas d'erreur sur ce champ spécifique
                     className={`block w-full rounded-md border-0 py-3 pl-10 pr-10 text-gray-900 ring-1 ring-inset ${
-                      error?.toLowerCase().includes('passe') ? 'ring-red-500' : 'ring-gray-300'
+                      error?.toLowerCase().includes('passe') || error?.toLowerCase().includes('invalide') ? 'ring-red-500' : 'ring-gray-300'
                     } placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-600 sm:text-sm sm:leading-6 transition-shadow duration-150 ease-in-out`}
                     placeholder="••••••••"
                   />
-                  {/* Bouton pour afficher/cacher le mot de passe */}
                   <button
                     type="button"
                     onClick={() => setPasswordVisible(!passwordVisible)}
@@ -311,7 +279,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Options : Se souvenir de moi et Mot de passe oublié */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
@@ -326,20 +293,19 @@ export default function LoginPage() {
                 </div>
 
                 <div className="text-sm">
-                  <Link
-                    href="/auth/reset-password" // Lien vers la page de réinitialisation (à créer)
+                  {/* <Link
+                    href="/auth/reset-password" 
                     className="font-semibold text-cyan-600 hover:text-cyan-500 transition-colors"
                   >
                     Mot de passe oublié ?
-                  </Link>
+                  </Link> */}
                 </div>
               </div>
 
-              {/* Bouton de soumission principal */}
               <div>
                 <button
                   type="submit"
-                  disabled={loading || googleLoading} // Désactivé pendant les deux types de chargement
+                  disabled={loading || googleLoading}
                   className={`flex w-full justify-center items-center rounded-md bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:from-cyan-700 hover:to-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 transition-all duration-300 ease-in-out ${
                     (loading || googleLoading) ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-lg transform hover:-translate-y-0.5'
                   }`}
@@ -356,7 +322,6 @@ export default function LoginPage() {
               </div>
             </form>
 
-            {/* Séparateur "Ou continuez avec" */}
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -369,13 +334,11 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Boutons de connexion sociale */}
               <div className="mt-6 grid grid-cols-1 gap-4">
-                {/* Bouton Google */}
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  disabled={loading || googleLoading} // Désactivé si l'autre méthode charge
+                  disabled={loading || googleLoading}
                   className={`flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent transition-all duration-200 ease-in-out ${
                     (loading || googleLoading) ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-md'
                   }`}
@@ -387,20 +350,11 @@ export default function LoginPage() {
                   )}
                   <span className="text-sm font-semibold leading-6">Google</span>
                 </button>
-
-                {/* Ajoutez d'autres fournisseurs ici si nécessaire (ex: GitHub, Facebook) */}
-                {/*
-                <button type="button" disabled={loading || googleLoading} className="...">
-                  <FaGithub className="h-5 w-5" aria-hidden="true" />
-                  <span className="text-sm font-semibold leading-6">GitHub</span>
-                </button>
-                */}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Liens légaux en bas */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>
             En vous connectant, vous acceptez nos{' '}
