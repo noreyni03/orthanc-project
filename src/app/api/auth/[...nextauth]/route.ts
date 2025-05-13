@@ -47,7 +47,7 @@ export const authOptions: NextAuthConfig = {
       name: 'Credentials',
       id: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "votre@email.com" },
+        email: { label: "Email", type: "email", placeholder: "nom@email.com" },
         password: { label: "Mot de passe", type: "password" }
       },
       async authorize(credentials): Promise<AdapterUser | null> {
