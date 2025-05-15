@@ -98,7 +98,7 @@ export const authOptions: NextAuthConfig = {
         // Assigner les rôles à la session
         session.user.roles = userWithRoles?.roles.map(role => role.name) || [];
         
-        console.log('Session roles:', session.user.roles); // Pour debug
+        console.log('Session roles:', session.user.roles); // Debug du manque d'asignation du rôle admin lors de la connexion
       }
       return session;
     },
