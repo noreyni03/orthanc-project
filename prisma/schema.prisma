@@ -15,7 +15,7 @@ datasource db {
 model User {
   id            String    @id @default(uuid())
   name          String?                     // Requis par NextAuth (peut être dérivé de l'email ou Google)
-  email         String    @unique             // Requis par NextAuth
+  email         String    @unique           // Requis par NextAuth
   emailVerified DateTime?                   // Requis par NextAuth
   image         String?                     // Requis par NextAuth (URL de l'avatar)
   password      String?                     // Mot de passe local, optionnel
@@ -39,7 +39,7 @@ model User {
 // Modèle Rôle personnalisé
 model Role {
   id            Int       @id @default(autoincrement())
-  name          String    @unique // Ex: ADMIN, RADIOLOGIST, TECHNICIAN
+  name          String    @unique
   users         User[]    // Relation Many-to-Many avec User
 }
 
