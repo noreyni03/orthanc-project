@@ -4,14 +4,14 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation'; // Utiliser next/navigation dans App Router
 import React, { useEffect } from 'react';
-import { motion } from 'framer-motion'; // Pour l'animation
+import { motion } from 'framer-motion';
 
 // Interface pour définir les rôles autorisés
 interface WithAuthProps {
   allowedRoles?: string[];
 }
 
-const ADMIN_ROLE = 'ADMIN'; // Définir une constante pour le rôle admin
+const ADMIN_ROLE = 'ADMIN';
 
 const withAuth = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
@@ -45,14 +45,12 @@ const withAuth = <P extends object>(
         return;
       }
 
-      // --- MODIFICATION ICI ---
       // Si l'utilisateur est ADMIN, on lui donne accès, peu importe les allowedRoles de la page.
       const isAdmin = userRoles.includes(ADMIN_ROLE);
       if (isAdmin) {
         // console.log('[withAuth] User is ADMIN. Access granted automatically.');
         return; // L'admin a accès, pas besoin de vérifier les allowedRoles spécifiques
       }
-      // --- FIN DE LA MODIFICATION ---
 
       // Si l'utilisateur n'est pas ADMIN, alors on vérifie les rôles spécifiques à la page
       if (options.allowedRoles && options.allowedRoles.length > 0) {
