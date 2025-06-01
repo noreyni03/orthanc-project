@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Orthanc Project
 
-## Getting Started
+Un projet Next.js moderne intégrant Orthanc DICOM Server avec une interface utilisateur avancée pour la visualisation et la gestion d'images médicales.
 
-First, run the development server:
+## 🚀 Prérequis
 
+- Node.js (v18 ou supérieur)
+- Docker et Docker Compose
+- Git
+- PostgreSQL (via Docker)
+
+## 📥 Installation
+
+1. Clonez le repository :
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd orthanc-project
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Créez un fichier `.env` à la racine du projet :
+```env
+# Base de données PostgreSQL
+POSTGRES_DB=orthanc_db
+POSTGRES_USER=orthanc_user
+POSTGRES_PASSWORD=votre_mot_de_passe_securise
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# URL de connexion Prisma
+DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}?schema=public"
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# NextAuth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=votre_secret_nextauth  # Générez avec : openssl rand -base64 32
 
-## Learn More
+# OAuth (optionnel)
+GOOGLE_CLIENT_ID=votre_client_id
+GOOGLE_CLIENT_SECRET=votre_client_secret
+```
 
-To learn more about Next.js, take a look at the following resources:
+3. Installez les dépendances :
+```bash
+npm install
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Initialisez la base de données :
+```bash
+# Démarrez les conteneurs Docker
+docker-compose up -d
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Exécutez les migrations Prisma
+npx prisma migrate deploy
 
-## Deploy on Vercel
+# Initialisez les données de base (optionnel)
+npx prisma db seed
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🚀 Démarrage du projet
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. En développement :
+```bash
+npm run dev
+```
+
+2. En production :
+```bash
+npm run build
+npm start
+```
+
+L'application sera accessible sur `http://localhost:3000`
+
+## 🏗️ Structure du projet
+
+- `/src/app` - Routes et pages Next.js
+- `/src/components` - Composants React réutilisables
+- `/src/lib` - Utilitaires et configuration
+- `/prisma` - Schéma et migrations de base de données
+- `/public` - Assets statiques
+
+## 🔧 Configuration d'Orthanc
+
+Le serveur Orthanc est configuré via Docker Compose avec :
+- Stockage des métadonnées dans PostgreSQL
+- Interface DICOMWeb activée
+- Support WADO pour la récupération d'images
+- CORS configuré pour le développement local
+
+## 🛠️ Technologies principales
+
+- **Frontend** : Next.js 14, React 18, TailwindCSS
+- **Visualisation** : Cornerstone.js, Three.js
+- **Base de données** : PostgreSQL, Prisma
+- **DICOM** : Orthanc Server
+- **Authentification** : NextAuth.js
+- **UI/UX** : Headless UI, Framer Motion
+
+## 🔐 Sécurité et Authentification
+
+Le projet utilise NextAuth.js avec :
+- Authentification locale (email/mot de passe)
+- Support OAuth (Google)
+- Gestion des rôles utilisateur
+- Sessions sécurisées
+
+## 🧪 Tests
+
+Les tests peuvent être exécutés avec :
+```bash
+npm run test
+```
+
+## 📚 Documentation additionnelle
+
+- [Documentation Next.js](https://nextjs.org/docs)
+- [Documentation Orthanc](https://book.orthanc-server.com)
+- [Documentation Prisma](https://www.prisma.io/docs)
+- [Documentation Cornerstone](https://docs.cornerstonejs.org)
+
+## 🤝 Contribution
+
+1. Fork le projet
+2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
+3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrez une Pull Request
+
+## 📄 Licence
+
+Ce projet est sous licence [MIT](LICENSE)
