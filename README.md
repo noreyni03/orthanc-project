@@ -13,7 +13,7 @@ Un projet Next.js moderne intégrant Orthanc DICOM Server avec une interface uti
 
 1. Clonez le repository :
 ```bash
-git clone <repository-url>
+git clone https://github.com/noreyni03/orthanc-project.git
 cd orthanc-project
 ```
 
